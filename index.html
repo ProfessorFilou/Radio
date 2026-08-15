@@ -42,24 +42,33 @@
       background: var(--bg);
     }
     .leaflet-container { background: var(--bg); font: inherit; }
+    /* Zoom controls – top right, under search + chips */
+    .leaflet-top.leaflet-right {
+      top: 100px !important;
+      right: 12px !important;
+    }
     .leaflet-control-zoom {
       border: none !important;
-      border-radius: 14px !important;
+      border-radius: 16px !important;
       overflow: hidden;
       box-shadow: 0 8px 28px rgba(0,0,0,0.45) !important;
-      margin: 16px !important;
+      margin: 0 !important;
     }
     .leaflet-control-zoom a {
-      background: rgba(28,28,30,0.92) !important;
+      background: rgba(28,28,30,0.9) !important;
       color: var(--text) !important;
       border: none !important;
-      width: 40px !important;
-      height: 40px !important;
-      line-height: 40px !important;
-      font-size: 18px !important;
-      backdrop-filter: blur(12px);
+      width: 42px !important;
+      height: 42px !important;
+      line-height: 42px !important;
+      font-size: 20px !important;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
     .leaflet-control-zoom a:hover { background: var(--card-hover) !important; }
+    .leaflet-control-zoom a:first-child {
+      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    }
 
     .station-marker {
       width: 13px; height: 13px;
@@ -82,34 +91,38 @@
       position: absolute;
       top: 0; left: 0; right: 0;
       z-index: 20;
-      padding: 14px 16px 0;
-      padding-top: max(14px, env(safe-area-inset-top));
+      padding: 12px 14px 0;
+      padding-top: max(12px, env(safe-area-inset-top));
       pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
     }
     .search-pill {
       pointer-events: auto;
       display: flex;
       align-items: center;
       gap: 10px;
-      max-width: 420px;
-      margin: 0 auto;
-      height: 48px;
-      background: rgba(28,28,30,0.82);
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
-      padding: 0 14px;
+      width: 100%;
+      max-width: 400px;
+      height: 46px;
+      background: rgba(28,28,30,0.85);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.38);
+      padding: 0 16px;
       transition: background 0.2s, box-shadow 0.2s;
     }
     .search-pill:focus-within {
-      background: rgba(44,44,46,0.95);
-      box-shadow: 0 0 0 3px rgba(10,132,255,0.35), 0 8px 32px rgba(0,0,0,0.4);
+      background: rgba(44,44,46,0.96);
+      box-shadow: 0 0 0 3px rgba(10,132,255,0.38), 0 8px 32px rgba(0,0,0,0.4);
     }
     .search-pill svg {
-      width: 18px; height: 18px;
-      opacity: 0.55;
+      width: 17px; height: 17px;
+      opacity: 0.5;
       flex-shrink: 0;
     }
     .search-pill input {
@@ -122,6 +135,47 @@
       -webkit-appearance: none;
     }
     .search-pill input::placeholder { color: var(--muted); }
+
+    /* Suggestion chips */
+    .suggestions {
+      pointer-events: auto;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      max-width: 100%;
+      padding: 0 2px 4px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .suggestions::-webkit-scrollbar { display: none; }
+    .chip {
+      flex-shrink: 0;
+      height: 32px;
+      padding: 0 14px;
+      border: none;
+      border-radius: 16px;
+      background: rgba(28,28,30,0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 520;
+      letter-spacing: -0.15px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .chip:hover {
+      background: rgba(44,44,46,0.95);
+      border-color: rgba(255,255,255,0.18);
+    }
+    .chip:active { transform: scale(0.95); }
+    .chip.active {
+      background: rgba(10,132,255,0.28);
+      border-color: rgba(10,132,255,0.5);
+      color: #fff;
+    }
 
     /* —— BOTTOM STACK —— */
     .bottom-stack {
@@ -141,11 +195,11 @@
     .player {
       pointer-events: auto;
       width: 100%;
-      max-width: 480px;
+      max-width: 460px;
       background: var(--player-bg);
       color: var(--player-text);
-      border-radius: 22px;
-      padding: 12px 14px 12px 12px;
+      border-radius: 28px;
+      padding: 11px 12px 11px 11px;
       box-shadow:
         0 12px 40px rgba(0,0,0,0.28),
         0 2px 8px rgba(0,0,0,0.08);
@@ -162,8 +216,8 @@
     }
 
     .player-cover {
-      width: 54px; height: 54px;
-      border-radius: 12px;
+      width: 52px; height: 52px;
+      border-radius: 16px;
       background: #e8e8ed;
       overflow: hidden;
       flex-shrink: 0;
@@ -241,53 +295,71 @@
     .p-btn svg { width: 20px; height: 20px; fill: currentColor; }
     .p-btn.play svg { width: 22px; height: 22px; }
 
-    /* —— ROUNDED BOTTOM BAR (Karte / Liste) —— */
+    /* —— ROUNDED BOTTOM BAR (Karte / Liste / Player) —— */
     .nav-bar {
       pointer-events: auto;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      background: rgba(28,28,30,0.88);
-      backdrop-filter: blur(28px) saturate(180%);
-      -webkit-backdrop-filter: blur(28px) saturate(180%);
-      border-radius: 28px;
-      padding: 5px;
-      border: 1px solid rgba(255,255,255,0.09);
-      box-shadow: 0 10px 36px rgba(0,0,0,0.4);
+      gap: 3px;
+      background: rgba(22,22,24,0.9);
+      backdrop-filter: blur(32px) saturate(180%);
+      -webkit-backdrop-filter: blur(32px) saturate(180%);
+      border-radius: 40px;
+      padding: 6px;
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow:
+        0 12px 40px rgba(0,0,0,0.45),
+        0 2px 8px rgba(0,0,0,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.06);
     }
     .nav-tab {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 7px;
-      height: 42px;
-      padding: 0 22px;
+      gap: 6px;
+      height: 44px;
+      min-width: 72px;
+      padding: 0 18px;
       border: none;
-      border-radius: 22px;
+      border-radius: 32px;
       background: transparent;
       color: var(--muted);
-      font-size: 14px;
-      font-weight: 560;
+      font-size: 13.5px;
+      font-weight: 580;
       letter-spacing: -0.2px;
       cursor: pointer;
-      transition: all 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+      transition: all 0.25s cubic-bezier(0.32, 0.72, 0, 1);
     }
     .nav-tab svg {
-      width: 18px; height: 18px;
+      width: 17px; height: 17px;
       stroke: currentColor;
       fill: none;
       stroke-width: 2;
+      flex-shrink: 0;
     }
     .nav-tab.active {
-      background: rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.16);
       color: #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     }
-    .nav-tab:active { transform: scale(0.96); }
+    .nav-tab:active { transform: scale(0.94); }
 
-    /* —— LIST SHEET —— */
-    .list-sheet {
+    /* Mobile: slightly tighter tabs */
+    @media (max-width: 400px) {
+      .nav-tab {
+        min-width: 0;
+        padding: 0 14px;
+        font-size: 13px;
+        gap: 5px;
+      }
+      .nav-tab svg { width: 16px; height: 16px; }
+      .search-pill { max-width: none; }
+      .leaflet-top.leaflet-right { top: 108px !important; }
+    }
+
+    /* —— SHEETS (List + Player) —— */
+    .sheet {
       position: absolute;
       left: 0; right: 0; bottom: 0;
       z-index: 25;
@@ -295,21 +367,91 @@
       background: rgba(18,18,20,0.94);
       backdrop-filter: blur(40px) saturate(160%);
       -webkit-backdrop-filter: blur(40px) saturate(160%);
-      border-radius: 28px 28px 0 0;
-      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 32px 32px 0 0;
+      border: 1px solid rgba(255,255,255,0.08);
       border-bottom: none;
       box-shadow: 0 -12px 48px rgba(0,0,0,0.45);
       display: flex;
       flex-direction: column;
       transform: translateY(110%);
       transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
-      padding-bottom: calc(90px + var(--safe-bottom));
+      padding-bottom: calc(96px + var(--safe-bottom));
       pointer-events: none;
     }
-    .list-sheet.open {
+    .sheet.open {
       transform: translateY(0);
       pointer-events: auto;
     }
+
+    /* Player sheet – bigger, centered */
+    .player-sheet {
+      height: min(48vh, 420px);
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px 24px calc(100px + var(--safe-bottom));
+    }
+    .ps-cover {
+      width: 140px; height: 140px;
+      border-radius: 24px;
+      background: #2c2c2e;
+      overflow: hidden;
+      margin: 0 auto 20px;
+      display: grid;
+      place-items: center;
+      font-size: 48px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.4);
+    }
+    .ps-cover img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .ps-title {
+      font-size: 22px;
+      font-weight: 670;
+      letter-spacing: -0.4px;
+      max-width: 320px;
+      margin: 0 auto 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ps-sub {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+    .ps-controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+    }
+    .ps-btn {
+      width: 48px; height: 48px;
+      border: none;
+      background: rgba(255,255,255,0.08);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: #fff;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .ps-btn:hover { background: rgba(255,255,255,0.14); }
+    .ps-btn:active { transform: scale(0.92); }
+    .ps-btn.play {
+      width: 68px; height: 68px;
+      background: #fff;
+      color: #1c1c1e;
+    }
+    .ps-btn.play:hover { background: #f0f0f0; }
+    .ps-btn svg { width: 22px; height: 22px; fill: currentColor; }
+    .ps-btn.play svg { width: 28px; height: 28px; }
 
     .sheet-handle {
       width: 36px; height: 5px;
@@ -332,6 +474,13 @@
       font-size: 13px;
       color: var(--muted);
       margin-top: 2px;
+    }
+
+    /* Mini player hides when full player sheet is open */
+    .player.hidden-by-sheet {
+      transform: translateY(120%) scale(0.96) !important;
+      opacity: 0 !important;
+      pointer-events: none;
     }
 
     .results {
@@ -422,7 +571,7 @@
   <div class="loading-bar" id="loadingBar"></div>
   <div id="map"></div>
 
-  <!-- Top floating search -->
+  <!-- Top floating search + suggestions -->
   <div class="top-bar">
     <div class="search-pill">
       <svg viewBox="0 0 24 24" stroke-linecap="round">
@@ -431,10 +580,20 @@
       </svg>
       <input type="search" id="searchInput" placeholder="Radiosender suchen…" autocomplete="off" spellcheck="false" />
     </div>
+    <div class="suggestions" id="suggestions">
+      <button class="chip" data-q="Jazz">🎷 Jazz</button>
+      <button class="chip" data-q="Rock">🎸 Rock</button>
+      <button class="chip" data-q="News">📰 News</button>
+      <button class="chip" data-q="Classical">🎻 Klassik</button>
+      <button class="chip" data-q="Pop">🎤 Pop</button>
+      <button class="chip" data-q="Electronic">⚡ Electronic</button>
+      <button class="chip" data-q="Deutschland">🇩🇪 DE</button>
+      <button class="chip" data-q="Lounge">🌙 Lounge</button>
+    </div>
   </div>
 
-  <!-- List sheet (slides up) -->
-  <div class="list-sheet" id="listSheet">
+  <!-- List sheet -->
+  <div class="sheet" id="listSheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <div class="sheet-title" id="sheetTitle">Sender</div>
@@ -445,9 +604,32 @@
     </div>
   </div>
 
-  <!-- Bottom stack: Player + Nav -->
+  <!-- Player sheet (big) -->
+  <div class="sheet player-sheet" id="playerSheet">
+    <div class="sheet-handle"></div>
+    <div class="ps-cover" id="psCover">📻</div>
+    <div class="ps-title" id="psTitle">Kein Sender</div>
+    <div class="ps-sub">
+      <span class="live-dot" id="psLiveDot" style="display:none"></span>
+      <span id="psSub">Wähle einen Sender auf der Karte</span>
+    </div>
+    <div class="ps-controls">
+      <button class="ps-btn" id="psPrev" aria-label="Vorheriger">
+        <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button class="ps-btn play" id="psPlay" aria-label="Play">
+        <svg id="psIconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="psIconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+      </button>
+      <button class="ps-btn" id="psNext" aria-label="Nächster">
+        <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6v12z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Bottom stack: Mini-Player + Nav -->
   <div class="bottom-stack">
-    <!-- White Spotify-style player -->
+    <!-- White Spotify-style mini player -->
     <div class="player" id="player">
       <div class="player-cover" id="playerCover">📻</div>
       <div class="player-meta">
@@ -471,7 +653,7 @@
       </div>
     </div>
 
-    <!-- Rounded Karte / Liste bar -->
+    <!-- Rounded Karte / Liste / Player bar -->
     <div class="nav-bar">
       <button class="nav-tab active" id="tabMap" data-view="map">
         <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>
@@ -480,6 +662,10 @@
       <button class="nav-tab" id="tabList" data-view="list">
         <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke-linecap="round"/></svg>
         Liste
+      </button>
+      <button class="nav-tab" id="tabPlayer" data-view="player">
+        <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" stroke-linecap="round"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        Player
       </button>
     </div>
   </div>
@@ -499,10 +685,11 @@
     let currentView = 'map';
     let searchTimeout = null;
 
-    const audio      = document.getElementById('audio');
-    const playerEl   = document.getElementById('player');
-    const listSheet  = document.getElementById('listSheet');
-    const loadingBar = document.getElementById('loadingBar');
+    const audio       = document.getElementById('audio');
+    const playerEl    = document.getElementById('player');
+    const listSheet   = document.getElementById('listSheet');
+    const playerSheet = document.getElementById('playerSheet');
+    const loadingBar  = document.getElementById('loadingBar');
 
     function setLoading(pct) {
       loadingBar.style.width = pct + '%';
@@ -545,7 +732,7 @@
     // ——— Map ———
     function initMap() {
       map = L.map('map', {
-        zoomControl: true,
+        zoomControl: false, // we add it manually on the right
         attributionControl: false,
         worldCopyJump: true,
         minZoom: 2,
@@ -556,6 +743,9 @@
         subdomains: 'abcd',
         maxZoom: 19
       }).addTo(map);
+
+      // Zoom control top-right (under search)
+      L.control.zoom({ position: 'topright' }).addTo(map);
 
       markersLayer = L.layerGroup().addTo(map);
       map.setMaxBounds([[-85, -180], [85, 180]]);
@@ -672,7 +862,6 @@
       playerEl.classList.add('visible');
       document.getElementById('playerTitle').textContent = station.name || 'Unbekannt';
       document.getElementById('playerSub').textContent = stationSubtitle(station);
-      document.getElementById('liveDot').style.display = 'none';
 
       const cover = document.getElementById('playerCover');
       if (station.favicon && station.favicon.startsWith('http')) {
@@ -680,6 +869,7 @@
       } else {
         cover.textContent = '📻';
       }
+      syncPlayerSheet();
 
       highlightMarker(station.stationuuid);
 
@@ -699,9 +889,9 @@
       audio.play().then(() => {
         isPlaying = true;
         updatePlayIcon();
-        document.getElementById('liveDot').style.display = 'inline-block';
       }).catch(() => {
         document.getElementById('playerSub').textContent = 'Stream nicht erreichbar';
+        document.getElementById('psSub').textContent = 'Stream nicht erreichbar';
         isPlaying = false;
         updatePlayIcon();
       });
@@ -717,19 +907,22 @@
       if (isPlaying) {
         audio.pause();
         isPlaying = false;
-        document.getElementById('liveDot').style.display = 'none';
       } else {
         audio.play().then(() => {
           isPlaying = true;
-          document.getElementById('liveDot').style.display = 'inline-block';
+          updatePlayIcon();
         }).catch(() => {});
       }
       updatePlayIcon();
     }
 
     function updatePlayIcon() {
-      document.getElementById('iconPlay').style.display  = isPlaying ? 'none'  : 'block';
-      document.getElementById('iconPause').style.display = isPlaying ? 'block' : 'none';
+      document.getElementById('iconPlay').style.display   = isPlaying ? 'none'  : 'block';
+      document.getElementById('iconPause').style.display  = isPlaying ? 'block' : 'none';
+      document.getElementById('psIconPlay').style.display  = isPlaying ? 'none'  : 'block';
+      document.getElementById('psIconPause').style.display = isPlaying ? 'block' : 'none';
+      document.getElementById('liveDot').style.display    = isPlaying ? 'inline-block' : 'none';
+      document.getElementById('psLiveDot').style.display  = isPlaying ? 'inline-block' : 'none';
     }
 
     function playRelative(delta) {
@@ -745,34 +938,78 @@
       currentView = view;
       document.getElementById('tabMap').classList.toggle('active', view === 'map');
       document.getElementById('tabList').classList.toggle('active', view === 'list');
+      document.getElementById('tabPlayer').classList.toggle('active', view === 'player');
+
       listSheet.classList.toggle('open', view === 'list');
-      document.body.classList.toggle('map-dimmed', view === 'list');
+      playerSheet.classList.toggle('open', view === 'player');
+      document.body.classList.toggle('map-dimmed', view === 'list' || view === 'player');
+
+      // Mini player only visible on map (when something is playing)
+      playerEl.classList.toggle('hidden-by-sheet', view === 'list' || view === 'player');
+    }
+
+    function syncPlayerSheet() {
+      if (!currentStation) return;
+      document.getElementById('psTitle').textContent = currentStation.name || 'Unbekannt';
+      document.getElementById('psSub').textContent = stationSubtitle(currentStation);
+
+      const cover = document.getElementById('psCover');
+      if (currentStation.favicon && currentStation.favicon.startsWith('http')) {
+        cover.innerHTML = `<img src="${currentStation.favicon}" alt="" onerror="this.parentElement.textContent='📻'" />`;
+      } else {
+        cover.textContent = '📻';
+      }
+      document.getElementById('psLiveDot').style.display = isPlaying ? 'inline-block' : 'none';
+      updatePlayIcon();
     }
 
     // ——— Events ———
     document.getElementById('searchInput').addEventListener('input', e => {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(() => doSearch(e.target.value), 300);
+      // clear chip active state when typing
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    });
+
+    // Suggestion chips
+    document.getElementById('suggestions').addEventListener('click', e => {
+      const chip = e.target.closest('.chip');
+      if (!chip) return;
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      const q = chip.dataset.q;
+      document.getElementById('searchInput').value = q;
+      doSearch(q);
     });
 
     document.getElementById('tabMap').addEventListener('click', () => setView('map'));
     document.getElementById('tabList').addEventListener('click', () => setView('list'));
+    document.getElementById('tabPlayer').addEventListener('click', () => {
+      setView('player');
+      syncPlayerSheet();
+    });
 
     document.getElementById('btnPlay').addEventListener('click', togglePlay);
     document.getElementById('btnPrev').addEventListener('click', () => playRelative(-1));
     document.getElementById('btnNext').addEventListener('click', () => playRelative(1));
 
+    document.getElementById('psPlay').addEventListener('click', togglePlay);
+    document.getElementById('psPrev').addEventListener('click', () => playRelative(-1));
+    document.getElementById('psNext').addEventListener('click', () => playRelative(1));
+
     audio.addEventListener('playing', () => {
-      isPlaying = true; updatePlayIcon();
-      document.getElementById('liveDot').style.display = 'inline-block';
+      isPlaying = true;
+      updatePlayIcon();
     });
     audio.addEventListener('pause', () => {
-      isPlaying = false; updatePlayIcon();
-      document.getElementById('liveDot').style.display = 'none';
+      isPlaying = false;
+      updatePlayIcon();
     });
     audio.addEventListener('error', () => {
       document.getElementById('playerSub').textContent = 'Stream-Fehler';
-      isPlaying = false; updatePlayIcon();
+      document.getElementById('psSub').textContent = 'Stream-Fehler';
+      isPlaying = false;
+      updatePlayIcon();
     });
 
     document.addEventListener('keydown', e => {
