@@ -85,6 +85,74 @@
       box-shadow: 0 0 0 5px rgba(10,132,255,0.55), 0 4px 16px rgba(0,0,0,0.45);
     }
 
+    /* Map info popup */
+    .leaflet-popup-content-wrapper {
+      background: var(--sheet) !important;
+      color: var(--text) !important;
+      border-radius: 16px !important;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4) !important;
+      border: 1px solid var(--border) !important;
+      backdrop-filter: blur(20px);
+      padding: 0 !important;
+    }
+    .leaflet-popup-content {
+      margin: 0 !important;
+      min-width: 200px;
+      max-width: min(280px, 80vw);
+    }
+    .leaflet-popup-tip {
+      background: var(--sheet) !important;
+      box-shadow: none !important;
+    }
+    .leaflet-container a.leaflet-popup-close-button {
+      color: var(--muted) !important;
+      font-size: 18px !important;
+      padding: 6px 8px 0 0 !important;
+      top: 4px !important; right: 4px !important;
+    }
+    .map-popup {
+      padding: 14px 14px 12px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .map-popup-top {
+      display: flex; align-items: center; gap: 12px;
+      padding-right: 18px;
+    }
+    .map-popup-logo {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(145deg, #3a3a3c, #2c2c2e);
+      overflow: hidden; flex-shrink: 0;
+      display: grid; place-items: center;
+    }
+    .map-popup-logo img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .map-popup-name {
+      font-size: 15px; font-weight: 650; letter-spacing: -0.2px;
+      line-height: 1.25; color: var(--text);
+    }
+    .map-popup-sub {
+      font-size: 12px; color: var(--muted); margin-top: 3px;
+      line-height: 1.3;
+    }
+    .map-popup-meta {
+      font-size: 11.5px; color: var(--muted);
+      display: flex; flex-wrap: wrap; gap: 6px 10px;
+    }
+    .map-popup-meta span {
+      background: rgba(127,127,127,0.12);
+      padding: 3px 8px; border-radius: 8px;
+    }
+    .map-popup-play {
+      width: 100%; height: 40px; border: none; border-radius: 12px;
+      background: var(--accent); color: #fff;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .map-popup-play:active { transform: scale(0.97); opacity: 0.9; }
+    .map-popup-play svg { width: 16px; height: 16px; fill: currentColor; }
+
     /* TOP */
     .top-bar {
       position: absolute; top: 0; left: 0; right: 0; z-index: 20;
@@ -414,11 +482,136 @@
       width: 0; z-index: 100; transition: width 0.25s;
     }
 
-    @media (max-width: 400px) {
-      .nav-tab { min-width: 0; padding: 0 10px; font-size: 12px; gap: 4px; }
-      .nav-tab svg { width: 15px; height: 15px; }
-      .leaflet-top.leaflet-right { top: 108px !important; }
-      /* theme button stays circular on mobile */
+    /* —— Mobile scaling —— */
+    @media (max-width: 600px) {
+      .top-bar {
+        padding: 10px 10px 0;
+        padding-top: max(10px, env(safe-area-inset-top));
+        gap: 8px;
+      }
+      .top-row {
+        max-width: 100%;
+        gap: 8px;
+      }
+      .search-pill {
+        height: 44px;
+        border-radius: 22px;
+        padding: 0 12px;
+        gap: 8px;
+      }
+      .search-pill input { font-size: 16px; } /* prevents iOS zoom */
+      #btnTheme {
+        width: 44px; height: 44px; min-width: 44px;
+      }
+      .suggestions {
+        width: 100%;
+        padding: 0 0 2px;
+        gap: 6px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .chip {
+        height: 30px;
+        padding: 0 12px;
+        font-size: 12.5px;
+        border-radius: 15px;
+      }
+
+      .leaflet-top.leaflet-right {
+        top: 100px !important;
+        right: 10px !important;
+      }
+      .leaflet-control-zoom a {
+        width: 38px !important;
+        height: 38px !important;
+        line-height: 38px !important;
+        font-size: 18px !important;
+      }
+
+      .bottom-stack {
+        padding: 0 10px;
+        padding-bottom: calc(10px + var(--safe-bottom));
+        gap: 8px;
+      }
+      .player {
+        max-width: 100%;
+        border-radius: 22px;
+        padding: 10px;
+        gap: 10px;
+      }
+      .player-cover { width: 48px; height: 48px; border-radius: 12px; }
+      .player-title { font-size: 14px; }
+      .player-sub { font-size: 12px; }
+      .p-btn { width: 36px; height: 36px; }
+      .p-btn.play { width: 44px; height: 44px; }
+      .p-btn svg { width: 18px; height: 18px; }
+      .p-btn.play svg { width: 20px; height: 20px; }
+
+      .nav-bar {
+        width: 100%;
+        max-width: 100%;
+        border-radius: 28px;
+        padding: 4px;
+        gap: 2px;
+      }
+      .nav-tab {
+        flex: 1;
+        min-width: 0;
+        height: 46px;
+        padding: 0 4px;
+        font-size: 11px;
+        gap: 3px;
+        flex-direction: column;
+        border-radius: 22px;
+      }
+      .nav-tab svg { width: 18px; height: 18px; }
+
+      .sheet {
+        height: min(70vh, 100%);
+        border-radius: 24px 24px 0 0;
+        padding-bottom: calc(88px + var(--safe-bottom));
+      }
+      .sheet-header { padding: 4px 16px 8px; }
+      .sheet-title { font-size: 18px; }
+      .results { padding: 4px 8px 16px; }
+      .station-item { padding: 10px 10px; gap: 12px; }
+      .station-fav { width: 44px; height: 44px; border-radius: 11px; }
+      .station-name { font-size: 14.5px; }
+      .station-sub { font-size: 12px; }
+
+      .player-sheet {
+        height: min(78vh, 100%);
+        padding: 8px 16px calc(92px + var(--safe-bottom));
+      }
+      .ps-cover {
+        width: min(36vw, 130px);
+        height: min(36vw, 130px);
+        border-radius: 22px;
+        margin: 4px auto 14px;
+      }
+      .ps-title { font-size: 18px; max-width: 90vw; }
+      .ps-sub { font-size: 13px; margin-bottom: 12px; }
+      .ps-controls { gap: 18px; margin-bottom: 16px; }
+      .ps-btn { width: 44px; height: 44px; }
+      .ps-btn.play { width: 60px; height: 60px; }
+      .ps-volume, .ps-sleep { max-width: 100%; }
+      .ps-info { max-width: 100%; padding: 12px 14px; }
+      .ps-info-row { font-size: 12.5px; }
+    }
+
+    @media (max-width: 360px) {
+      .nav-tab { font-size: 10px; }
+      .nav-tab svg { width: 16px; height: 16px; }
+      .chip { padding: 0 10px; font-size: 12px; }
+    }
+
+    @media (max-height: 600px) {
+      .sheet { height: min(62vh, 100%); }
+      .player-sheet { height: min(70vh, 100%); }
+      .ps-cover {
+        width: 96px; height: 96px;
+        margin: 2px auto 10px;
+      }
+      .ps-controls { margin-bottom: 10px; }
     }
   </style>
 </head>
@@ -838,6 +1031,32 @@
       }
     }
 
+    function popupHtml(station) {
+      const logo = faviconHtml(station);
+      const bits = [];
+      if (station.country) bits.push(`<span>${escapeHtml(station.country)}</span>`);
+      if (station.bitrate) bits.push(`<span>${station.bitrate} kbps</span>`);
+      if (station.codec) bits.push(`<span>${escapeHtml(station.codec)}</span>`);
+      const tags = station.tags
+        ? station.tags.split(',').map(t => t.trim()).filter(Boolean).slice(0, 2).join(', ')
+        : '';
+      return `
+        <div class="map-popup">
+          <div class="map-popup-top">
+            <div class="map-popup-logo">${logo}</div>
+            <div>
+              <div class="map-popup-name">${escapeHtml(station.name || 'Sender')}</div>
+              <div class="map-popup-sub">${escapeHtml(tags || stationSubtitle(station))}</div>
+            </div>
+          </div>
+          ${bits.length ? `<div class="map-popup-meta">${bits.join('')}</div>` : ''}
+          <button type="button" class="map-popup-play" data-play="${station.stationuuid}">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            Abspielen
+          </button>
+        </div>`;
+    }
+
     function addMarker(station) {
       if (!station.geo_lat || !station.geo_long) return;
       const icon = L.divIcon({
@@ -848,7 +1067,30 @@
       });
       const m = L.marker([station.geo_lat, station.geo_long], { icon });
       m.station = station;
-      m.on('click', () => playStation(station, allStations));
+      m.bindPopup(popupHtml(station), {
+        maxWidth: 300,
+        minWidth: 200,
+        className: 'station-popup',
+        autoPan: true,
+        autoPanPadding: [60, 120]
+      });
+      m.on('popupopen', (e) => {
+        const btn = e.popup.getElement()?.querySelector('.map-popup-play');
+        if (btn) {
+          btn.onclick = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            playStation(station, allStations);
+            m.closePopup();
+          };
+        }
+      });
+      m.on('click', () => {
+        // popup opens via bindPopup; also highlight
+        document.querySelectorAll('.station-marker').forEach(el => {
+          el.classList.toggle('active', el.dataset.uuid === station.stationuuid);
+        });
+      });
       markersLayer.addLayer(m);
     }
 
@@ -995,6 +1237,36 @@
     }
 
     // ——— Player ———
+    function updateMediaSession(station) {
+      if (!('mediaSession' in navigator) || !station) return;
+      const artwork = [];
+      const cands = logoCandidates(station);
+      cands.slice(0, 2).forEach(src => {
+        artwork.push({ src, sizes: '128x128', type: 'image/png' });
+      });
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: station.name || 'Radio',
+          artist: stationSubtitle(station),
+          album: 'Radio',
+          artwork
+        });
+        navigator.mediaSession.setActionHandler('play', () => {
+          audio.play().then(() => { isPlaying = true; updatePlayIcon(); }).catch(() => {});
+        });
+        navigator.mediaSession.setActionHandler('pause', () => {
+          audio.pause();
+          isPlaying = false;
+          updatePlayIcon();
+        });
+        navigator.mediaSession.setActionHandler('previoustrack', () => playRelative(-1));
+        navigator.mediaSession.setActionHandler('nexttrack', () => playRelative(1));
+        navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+      } catch (e) {
+        console.warn('MediaSession', e);
+      }
+    }
+
     function playStation(station, list = null) {
       if (list) currentList = list;
       currentStation = station;
@@ -1007,6 +1279,8 @@
       syncPlayerSheet();
       updateFavButtons();
       highlightMarker(station.stationuuid);
+      updateMediaSession(station);
+      document.title = (station.name || 'Radio') + ' · Radio';
 
       const q = document.getElementById('searchInput').value.trim();
       if (currentView === 'list') {
@@ -1023,6 +1297,9 @@
       audio.play().then(() => {
         isPlaying = true;
         updatePlayIcon();
+        if ('mediaSession' in navigator) {
+          try { navigator.mediaSession.playbackState = 'playing'; } catch {}
+        }
       }).catch(() => {
         document.getElementById('playerSub').textContent = 'Stream nicht erreichbar';
         document.getElementById('psSub').textContent = 'Stream nicht erreichbar';
@@ -1072,6 +1349,11 @@
       document.getElementById('psLiveDot').style.display = isPlaying ? 'inline-block' : 'none';
       document.getElementById('miniEq').classList.toggle('paused', !isPlaying);
       document.getElementById('psEq').classList.toggle('paused', !isPlaying);
+      if ('mediaSession' in navigator) {
+        try { navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused'; } catch {}
+      }
+      if (!isPlaying && !currentStation) document.title = 'Radio';
+      else if (currentStation) document.title = (currentStation.name || 'Radio') + ' · Radio';
     }
 
     function playRelative(delta) {
