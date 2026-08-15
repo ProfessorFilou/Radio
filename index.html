@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Radio Garden</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    :root {
+      --bg: #050506;
+      --card: #1c1c1e;
+      --card-hover: #2c2c2e;
+      --text: #f5f5f7;
+      --muted: #8e8e93;
+      --accent: #0a84ff;
+      --green: #30d158;
+      --player-bg: #ffffff;
+      --player-text: #1c1c1e;
+      --player-muted: #636366;
+      --radius: 20px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* —— FULL MAP —— */
+    #map {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: var(--bg);
+    }
+    .leaflet-container { background: var(--bg); font: inherit; }
+    .leaflet-control-zoom {
+      border: none !important;
+      border-radius: 14px !important;
+      overflow: hidden;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.45) !important;
+      margin: 16px !important;
+    }
+    .leaflet-control-zoom a {
+      background: rgba(28,28,30,0.92) !important;
+      color: var(--text) !important;
+      border: none !important;
+      width: 40px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      font-size: 18px !important;
+      backdrop-filter: blur(12px);
+    }
+    .leaflet-control-zoom a:hover { background: var(--card-hover) !important; }
+
+    .station-marker {
+      width: 13px; height: 13px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 3px rgba(10,132,255,0.4), 0 2px 10px rgba(0,0,0,0.55);
+      cursor: pointer;
+      transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .station-marker:hover,
+    .station-marker.active {
+      transform: scale(1.55);
+      background: #fff;
+      box-shadow: 0 0 0 5px rgba(10,132,255,0.55), 0 4px 16px rgba(0,0,0,0.5);
+    }
+
+    /* —— TOP SEARCH (floating Apple) —— */
+    .top-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 20;
+      padding: 14px 16px 0;
+      padding-top: max(14px, env(safe-area-inset-top));
+      pointer-events: none;
+    }
+    .search-pill {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 420px;
+      margin: 0 auto;
+      height: 48px;
+      background: rgba(28,28,30,0.82);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+      padding: 0 14px;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+    .search-pill:focus-within {
+      background: rgba(44,44,46,0.95);
+      box-shadow: 0 0 0 3px rgba(10,132,255,0.35), 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .search-pill svg {
+      width: 18px; height: 18px;
+      opacity: 0.55;
+      flex-shrink: 0;
+    }
+    .search-pill input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-size: 16px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .search-pill input::placeholder { color: var(--muted); }
+
+    /* —— BOTTOM STACK —— */
+    .bottom-stack {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 12px;
+      padding-bottom: calc(12px + var(--safe-bottom));
+      pointer-events: none;
+      gap: 10px;
+    }
+
+    /* —— WHITE PLAYER (Spotify-inspired) —— */
+    .player {
+      pointer-events: auto;
+      width: 100%;
+      max-width: 480px;
+      background: var(--player-bg);
+      color: var(--player-text);
+      border-radius: 22px;
+      padding: 12px 14px 12px 12px;
+      box-shadow:
+        0 12px 40px rgba(0,0,0,0.28),
+        0 2px 8px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transform: translateY(120%) scale(0.96);
+      opacity: 0;
+      transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease;
+    }
+    .player.visible {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .player-cover {
+      width: 54px; height: 54px;
+      border-radius: 12px;
+      background: #e8e8ed;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-size: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .player-cover img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+
+    .player-meta {
+      flex: 1;
+      min-width: 0;
+    }
+    .player-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .player-sub {
+      font-size: 12.5px;
+      color: var(--player-muted);
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .live-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+      animation: pulse 1.8s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.85); }
+    }
+
+    .player-btns {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .p-btn {
+      width: 40px; height: 40px;
+      border: none;
+      background: transparent;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: var(--player-text);
+      transition: background 0.15s, transform 0.1s;
+    }
+    .p-btn:hover { background: rgba(0,0,0,0.06); }
+    .p-btn:active { transform: scale(0.9); }
+    .p-btn.play {
+      width: 48px; height: 48px;
+      background: #1c1c1e;
+      color: #fff;
+      margin: 0 2px;
+    }
+    .p-btn.play:hover { background: #2c2c2e; }
+    .p-btn svg { width: 20px; height: 20px; fill: currentColor; }
+    .p-btn.play svg { width: 22px; height: 22px; }
+
+    /* —— ROUNDED BOTTOM BAR (Karte / Liste) —— */
+    .nav-bar {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      background: rgba(28,28,30,0.88);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border-radius: 28px;
+      padding: 5px;
+      border: 1px solid rgba(255,255,255,0.09);
+      box-shadow: 0 10px 36px rgba(0,0,0,0.4);
+    }
+    .nav-tab {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      height: 42px;
+      padding: 0 22px;
+      border: none;
+      border-radius: 22px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 560;
+      letter-spacing: -0.2px;
+      cursor: pointer;
+      transition: all 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+    .nav-tab svg {
+      width: 18px; height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+    .nav-tab.active {
+      background: rgba(255,255,255,0.14);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .nav-tab:active { transform: scale(0.96); }
+
+    /* —— LIST SHEET —— */
+    .list-sheet {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      z-index: 25;
+      height: min(62vh, 560px);
+      background: rgba(18,18,20,0.94);
+      backdrop-filter: blur(40px) saturate(160%);
+      -webkit-backdrop-filter: blur(40px) saturate(160%);
+      border-radius: 28px 28px 0 0;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-bottom: none;
+      box-shadow: 0 -12px 48px rgba(0,0,0,0.45);
+      display: flex;
+      flex-direction: column;
+      transform: translateY(110%);
+      transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+      padding-bottom: calc(90px + var(--safe-bottom));
+      pointer-events: none;
+    }
+    .list-sheet.open {
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .sheet-handle {
+      width: 36px; height: 5px;
+      background: rgba(255,255,255,0.22);
+      border-radius: 3px;
+      margin: 10px auto 6px;
+      flex-shrink: 0;
+    }
+
+    .sheet-header {
+      padding: 4px 20px 12px;
+      flex-shrink: 0;
+    }
+    .sheet-title {
+      font-size: 20px;
+      font-weight: 670;
+      letter-spacing: -0.4px;
+    }
+    .sheet-count {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .results {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 12px 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .results::-webkit-scrollbar { width: 5px; }
+    .results::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.15);
+      border-radius: 3px;
+    }
+
+    .station-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 11px 12px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .station-item:hover { background: rgba(255,255,255,0.06); }
+    .station-item.playing {
+      background: rgba(10,132,255,0.14);
+    }
+
+    .station-fav {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      background: var(--card);
+      overflow: hidden;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      font-size: 20px;
+    }
+    .station-fav img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+
+    .station-meta { flex: 1; min-width: 0; }
+    .station-name {
+      font-size: 15.5px;
+      font-weight: 550;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .station-sub {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.55;
+    }
+
+    .loading-bar {
+      position: absolute;
+      top: 0; left: 0;
+      height: 2px;
+      background: var(--accent);
+      width: 0;
+      z-index: 100;
+      transition: width 0.25s;
+    }
+
+    /* when list is open, slightly dim map */
+    .map-dimmed #map {
+      filter: brightness(0.65);
+      transition: filter 0.35s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-bar" id="loadingBar"></div>
+  <div id="map"></div>
+
+  <!-- Top floating search -->
+  <div class="top-bar">
+    <div class="search-pill">
+      <svg viewBox="0 0 24 24" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/>
+        <path d="M20 20l-3.5-3.5"/>
+      </svg>
+      <input type="search" id="searchInput" placeholder="Radiosender suchen…" autocomplete="off" spellcheck="false" />
+    </div>
+  </div>
+
+  <!-- List sheet (slides up) -->
+  <div class="list-sheet" id="listSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="sheetTitle">Sender</div>
+      <div class="sheet-count" id="sheetCount">—</div>
+    </div>
+    <div class="results" id="results">
+      <div class="empty-state">Lade Sender…</div>
+    </div>
+  </div>
+
+  <!-- Bottom stack: Player + Nav -->
+  <div class="bottom-stack">
+    <!-- White Spotify-style player -->
+    <div class="player" id="player">
+      <div class="player-cover" id="playerCover">📻</div>
+      <div class="player-meta">
+        <div class="player-title" id="playerTitle">—</div>
+        <div class="player-sub">
+          <span class="live-dot" id="liveDot" style="display:none"></span>
+          <span id="playerSub">Bereit</span>
+        </div>
+      </div>
+      <div class="player-btns">
+        <button class="p-btn" id="btnPrev" aria-label="Vorheriger">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+        <button class="p-btn play" id="btnPlay" aria-label="Play">
+          <svg id="iconPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <svg id="iconPause" viewBox="0 0 24 24" style="display:none"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+        </button>
+        <button class="p-btn" id="btnNext" aria-label="Nächster">
+          <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6v12z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Rounded Karte / Liste bar -->
+    <div class="nav-bar">
+      <button class="nav-tab active" id="tabMap" data-view="map">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18"/></svg>
+        Karte
+      </button>
+      <button class="nav-tab" id="tabList" data-view="list">
+        <svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" stroke-linecap="round"/></svg>
+        Liste
+      </button>
+    </div>
+  </div>
+
+  <audio id="audio" preload="none" crossorigin="anonymous"></audio>
+
+  <script>
+    const API = 'https://de1.api.radio-browser.info/json';
+    const UA  = 'RadioGardenClone/1.1';
+
+    let map, markersLayer;
+    let allStations = [];
+    let searchResults = [];
+    let currentStation = null;
+    let currentList = [];
+    let isPlaying = false;
+    let currentView = 'map';
+    let searchTimeout = null;
+
+    const audio      = document.getElementById('audio');
+    const playerEl   = document.getElementById('player');
+    const listSheet  = document.getElementById('listSheet');
+    const loadingBar = document.getElementById('loadingBar');
+
+    function setLoading(pct) {
+      loadingBar.style.width = pct + '%';
+      if (pct >= 100) setTimeout(() => loadingBar.style.width = '0', 350);
+    }
+
+    async function api(path, params = {}) {
+      const qs = new URLSearchParams(params).toString();
+      const res = await fetch(`${API}${path}${qs ? '?' + qs : ''}`, {
+        headers: { 'User-Agent': UA, 'Accept': 'application/json' }
+      });
+      if (!res.ok) throw new Error('API ' + res.status);
+      return res.json();
+    }
+
+    function faviconHtml(s) {
+      if (s.favicon && s.favicon.startsWith('http')) {
+        return `<img src="${s.favicon}" alt="" onerror="this.parentElement.textContent='📻'" />`;
+      }
+      return '📻';
+    }
+
+    function stationSubtitle(s) {
+      const parts = [];
+      if (s.country) parts.push(s.country);
+      if (s.tags) {
+        const t = s.tags.split(',').map(x => x.trim()).filter(Boolean).slice(0, 2).join(', ');
+        if (t) parts.push(t);
+      }
+      return parts.join(' · ') || 'Internet Radio';
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // ——— Map ———
+    function initMap() {
+      map = L.map('map', {
+        zoomControl: true,
+        attributionControl: false,
+        worldCopyJump: true,
+        minZoom: 2,
+        maxZoom: 12
+      }).setView([22, 12], 2.4);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+
+      markersLayer = L.layerGroup().addTo(map);
+      map.setMaxBounds([[-85, -180], [85, 180]]);
+    }
+
+    function addMarker(station) {
+      if (!station.geo_lat || !station.geo_long) return;
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="station-marker" data-uuid="${station.stationuuid}"></div>`,
+        iconSize: [13, 13],
+        iconAnchor: [6.5, 6.5]
+      });
+      const m = L.marker([station.geo_lat, station.geo_long], { icon });
+      m.station = station;
+      m.on('click', () => playStation(station, allStations));
+      markersLayer.addLayer(m);
+    }
+
+    function highlightMarker(uuid) {
+      document.querySelectorAll('.station-marker').forEach(el => {
+        el.classList.toggle('active', el.dataset.uuid === uuid);
+      });
+    }
+
+    async function loadMapStations() {
+      setLoading(25);
+      try {
+        const stations = await api('/stations/search', {
+          has_geo_info: true,
+          hidebroken: true,
+          order: 'votes',
+          reverse: true,
+          limit: 900
+        });
+        allStations = stations.filter(s => s.geo_lat && s.geo_long && (s.url_resolved || s.url));
+        markersLayer.clearLayers();
+        allStations.forEach(addMarker);
+        renderList(allStations.slice(0, 50), 'Beliebte Sender');
+        setLoading(100);
+      } catch (e) {
+        console.error(e);
+        document.getElementById('results').innerHTML =
+          `<div class="empty-state">Sender konnten nicht geladen werden.</div>`;
+        setLoading(100);
+      }
+    }
+
+    // ——— Search ———
+    async function doSearch(q) {
+      q = q.trim();
+      if (!q) {
+        renderList(allStations.slice(0, 50), 'Beliebte Sender');
+        return;
+      }
+      setLoading(40);
+      try {
+        const stations = await api('/stations/search', {
+          name: q,
+          hidebroken: true,
+          order: 'votes',
+          reverse: true,
+          limit: 80
+        });
+        searchResults = stations.filter(s => s.url_resolved || s.url);
+        renderList(searchResults, `„${q}“`);
+        // Auto open list on search
+        if (currentView !== 'list') setView('list');
+        setLoading(100);
+      } catch (e) {
+        console.error(e);
+        setLoading(100);
+      }
+    }
+
+    function renderList(stations, label) {
+      const el = document.getElementById('results');
+      document.getElementById('sheetTitle').textContent = label || 'Sender';
+      document.getElementById('sheetCount').textContent =
+        stations.length ? `${stations.length} Sender` : '';
+
+      if (!stations.length) {
+        el.innerHTML = `<div class="empty-state">Keine Sender gefunden.</div>`;
+        return;
+      }
+
+      let html = '';
+      stations.forEach(s => {
+        const playing = currentStation && currentStation.stationuuid === s.stationuuid;
+        html += `
+          <div class="station-item ${playing ? 'playing' : ''}" data-uuid="${s.stationuuid}">
+            <div class="station-fav">${faviconHtml(s)}</div>
+            <div class="station-meta">
+              <div class="station-name">${escapeHtml(s.name)}</div>
+              <div class="station-sub">${escapeHtml(stationSubtitle(s))}</div>
+            </div>
+          </div>`;
+      });
+      el.innerHTML = html;
+
+      el.querySelectorAll('.station-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const s = stations.find(x => x.stationuuid === item.dataset.uuid);
+          if (s) playStation(s, stations);
+        });
+      });
+    }
+
+    // ——— Player ———
+    function playStation(station, list = null) {
+      if (list) currentList = list;
+      currentStation = station;
+
+      playerEl.classList.add('visible');
+      document.getElementById('playerTitle').textContent = station.name || 'Unbekannt';
+      document.getElementById('playerSub').textContent = stationSubtitle(station);
+      document.getElementById('liveDot').style.display = 'none';
+
+      const cover = document.getElementById('playerCover');
+      if (station.favicon && station.favicon.startsWith('http')) {
+        cover.innerHTML = `<img src="${station.favicon}" alt="" onerror="this.parentElement.textContent='📻'" />`;
+      } else {
+        cover.textContent = '📻';
+      }
+
+      highlightMarker(station.stationuuid);
+
+      // Refresh list highlight
+      const q = document.getElementById('searchInput').value.trim();
+      renderList(
+        q ? searchResults : allStations.slice(0, 50),
+        q ? `„${q}“` : 'Beliebte Sender'
+      );
+
+      if (station.geo_lat && station.geo_long) {
+        map.flyTo([station.geo_lat, station.geo_long], Math.max(map.getZoom(), 5), { duration: 1.15 });
+      }
+
+      const url = station.url_resolved || station.url;
+      audio.src = url;
+      audio.play().then(() => {
+        isPlaying = true;
+        updatePlayIcon();
+        document.getElementById('liveDot').style.display = 'inline-block';
+      }).catch(() => {
+        document.getElementById('playerSub').textContent = 'Stream nicht erreichbar';
+        isPlaying = false;
+        updatePlayIcon();
+      });
+
+      // optional click tracking
+      try {
+        fetch(`${API}/url/${station.stationuuid}`, { headers: { 'User-Agent': UA } }).catch(() => {});
+      } catch (_) {}
+    }
+
+    function togglePlay() {
+      if (!currentStation) return;
+      if (isPlaying) {
+        audio.pause();
+        isPlaying = false;
+        document.getElementById('liveDot').style.display = 'none';
+      } else {
+        audio.play().then(() => {
+          isPlaying = true;
+          document.getElementById('liveDot').style.display = 'inline-block';
+        }).catch(() => {});
+      }
+      updatePlayIcon();
+    }
+
+    function updatePlayIcon() {
+      document.getElementById('iconPlay').style.display  = isPlaying ? 'none'  : 'block';
+      document.getElementById('iconPause').style.display = isPlaying ? 'block' : 'none';
+    }
+
+    function playRelative(delta) {
+      if (!currentList.length || !currentStation) return;
+      const idx = currentList.findIndex(s => s.stationuuid === currentStation.stationuuid);
+      if (idx === -1) return;
+      const next = currentList[(idx + delta + currentList.length) % currentList.length];
+      playStation(next, currentList);
+    }
+
+    // ——— View toggle ———
+    function setView(view) {
+      currentView = view;
+      document.getElementById('tabMap').classList.toggle('active', view === 'map');
+      document.getElementById('tabList').classList.toggle('active', view === 'list');
+      listSheet.classList.toggle('open', view === 'list');
+      document.body.classList.toggle('map-dimmed', view === 'list');
+    }
+
+    // ——— Events ———
+    document.getElementById('searchInput').addEventListener('input', e => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => doSearch(e.target.value), 300);
+    });
+
+    document.getElementById('tabMap').addEventListener('click', () => setView('map'));
+    document.getElementById('tabList').addEventListener('click', () => setView('list'));
+
+    document.getElementById('btnPlay').addEventListener('click', togglePlay);
+    document.getElementById('btnPrev').addEventListener('click', () => playRelative(-1));
+    document.getElementById('btnNext').addEventListener('click', () => playRelative(1));
+
+    audio.addEventListener('playing', () => {
+      isPlaying = true; updatePlayIcon();
+      document.getElementById('liveDot').style.display = 'inline-block';
+    });
+    audio.addEventListener('pause', () => {
+      isPlaying = false; updatePlayIcon();
+      document.getElementById('liveDot').style.display = 'none';
+    });
+    audio.addEventListener('error', () => {
+      document.getElementById('playerSub').textContent = 'Stream-Fehler';
+      isPlaying = false; updatePlayIcon();
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+    });
+
+    // Start
+    initMap();
+    loadMapStations();
+  </script>
+</body>
+</html>
