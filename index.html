@@ -714,26 +714,100 @@
       return res.json();
     }
 
-    function faviconHtml(s) {
-      if (s.favicon && (s.favicon.startsWith('http') || s.favicon.startsWith('//'))) {
-        const src = s.favicon.startsWith('//') ? 'https:' + s.favicon : s.favicon;
-        return `<img src="${src}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span style=font-size:11px;font-weight:600;color:#888>Radio</span>')" />`;
-      }
-      return '<span style="font-size:11px;font-weight:600;color:#888">Radio</span>';
+    function normalizeUrl(u) {
+      if (!u) return null;
+      u = String(u).trim();
+      if (!u) return null;
+      if (u.startsWith('//')) u = 'https:' + u;
+      if (u.startsWith('http://')) u = 'https://' + u.slice(7);
+      if (!u.startsWith('http')) return null;
+      return u;
     }
+
+    function domainFromStation(s) {
+      const candidates = [s.homepage, s.favicon, s.url_resolved, s.url];
+      for (const c of candidates) {
+        try {
+          const u = normalizeUrl(c);
+          if (u) return new URL(u).hostname;
+        } catch (_) {}
+      }
+      return null;
+    }
+
+    function logoCandidates(s) {
+      const list = [];
+      const fav = normalizeUrl(s.favicon);
+      if (fav) list.push(fav);
+      const domain = domainFromStation(s);
+      if (domain) {
+        // reliable fallback services
+        list.push(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`);
+        list.push(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
+      }
+      return list;
+    }
+
+    function loadLogo(imgEl, candidates, onFail) {
+      let i = 0;
+      const tryNext = () => {
+        if (i >= candidates.length) {
+          if (onFail) onFail();
+          return;
+        }
+        imgEl.onload = () => { imgEl.style.display = 'block'; };
+        imgEl.onerror = () => { i++; tryNext(); };
+        imgEl.src = candidates[i++];
+      };
+      tryNext();
+    }
+
+    function faviconHtml(s) {
+      const cands = logoCandidates(s);
+      if (!cands.length) {
+        return '<span style="font-size:11px;font-weight:600;color:#8e8e93">Radio</span>';
+      }
+      // first candidate; onerror chain via data attribute handled simply
+      const first = cands[0];
+      const rest = cands.slice(1).join('|');
+      return `<img src="${first}" alt="" loading="lazy" referrerpolicy="no-referrer" data-fallbacks="${rest.replace(/"/g, '')}" onerror="window.__logoFail&&window.__logoFail(this)" />`;
+    }
+
+    // global fallback handler for list images
+    window.__logoFail = function(img) {
+      const rest = (img.dataset.fallbacks || '').split('|').filter(Boolean);
+      if (rest.length) {
+        img.dataset.fallbacks = rest.slice(1).join('|');
+        img.src = rest[0];
+        return;
+      }
+      img.style.display = 'none';
+      if (!img.parentElement.querySelector('span')) {
+        const sp = document.createElement('span');
+        sp.style.cssText = 'font-size:11px;font-weight:600;color:#8e8e93';
+        sp.textContent = 'Radio';
+        img.parentElement.appendChild(sp);
+      }
+    };
 
     function setCover(el, station) {
       if (!el) return;
       const isBig = el.id === 'psCover';
       const size = isBig ? '18px' : '11px';
-      const fallback = `<span style="font-size:${size};font-weight:600;letter-spacing:-0.3px;color:#888">Radio</span>`;
-      const url = station && station.favicon;
-      if (url && (url.startsWith('http') || url.startsWith('//'))) {
-        const src = url.startsWith('//') ? 'https:' + url : url;
-        el.innerHTML = `<img src="${src}" alt="" onerror="this.remove();this.parentElement.innerHTML='${fallback.replace(/'/g, "\\'")}'" />`;
-      } else {
-        el.innerHTML = fallback;
+      const cands = logoCandidates(station || {});
+      el.innerHTML = '';
+      if (!cands.length) {
+        el.innerHTML = `<span style="font-size:${size};font-weight:600;letter-spacing:-0.3px;color:#8e8e93">Radio</span>`;
+        return;
       }
+      const img = document.createElement('img');
+      img.alt = '';
+      img.referrerPolicy = 'no-referrer';
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+      el.appendChild(img);
+      loadLogo(img, cands, () => {
+        el.innerHTML = `<span style="font-size:${size};font-weight:600;letter-spacing:-0.3px;color:#8e8e93">Radio</span>`;
+      });
     }
 
     function stationSubtitle(s) {
