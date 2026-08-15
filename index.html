@@ -110,15 +110,17 @@
     }
     .search-pill input::placeholder { color: var(--muted); }
 
-    .icon-btn {
-      width: 46px; height: 46px; border-radius: 50%; border: 1px solid var(--border);
-      background: var(--search-bg); backdrop-filter: blur(20px);
-      display: grid; place-items: center; cursor: pointer; color: var(--text);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.2); flex-shrink: 0;
-      transition: transform 0.15s, background 0.15s;
+    /* ONE round design button – right of search */
+    #btnTheme {
+      width: 46px; height: 46px; min-width: 46px; border-radius: 50%; padding: 0;
+      border: 1px solid var(--border); background: var(--search-bg);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      display: grid; place-items: center; cursor: pointer;
+      color: var(--text); box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      flex-shrink: 0; transition: transform 0.15s, background 0.2s, color 0.2s;
     }
-    .icon-btn:active { transform: scale(0.92); }
-    .icon-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; }
+    #btnTheme:active { transform: scale(0.9); }
+    #btnTheme svg { width: 20px; height: 20px; pointer-events: none; }
 
     .suggestions {
       pointer-events: auto; display: flex; gap: 8px; overflow-x: auto;
@@ -238,7 +240,7 @@
     .nav-tab.active { background: rgba(127,127,127,0.2); color: var(--text); box-shadow: 0 2px 10px rgba(0,0,0,0.12); }
     .nav-tab:active { transform: scale(0.94); }
 
-    /* SHEETS */
+    /* SHEETS – slide up/down */
     .sheet {
       position: absolute; left: 0; right: 0; bottom: 0; z-index: 25;
       height: min(68vh, 620px); background: var(--sheet);
@@ -246,10 +248,23 @@
       border-radius: 32px 32px 0 0; border: 1px solid var(--border); border-bottom: none;
       box-shadow: 0 -12px 48px rgba(0,0,0,0.35);
       display: flex; flex-direction: column;
-      transform: translateY(110%); transition: transform 0.42s cubic-bezier(0.32,0.72,0,1);
-      padding-bottom: calc(96px + var(--safe-bottom)); pointer-events: none;
+      transform: translateY(105%);
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        transform 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+        opacity 0.3s ease,
+        visibility 0.45s;
+      padding-bottom: calc(96px + var(--safe-bottom));
+      pointer-events: none;
+      will-change: transform, opacity;
     }
-    .sheet.open { transform: translateY(0); pointer-events: auto; }
+    .sheet.open {
+      transform: translateY(0);
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
     .sheet-handle {
       width: 36px; height: 5px; background: rgba(127,127,127,0.35);
       border-radius: 3px; margin: 10px auto 6px; flex-shrink: 0;
@@ -353,13 +368,23 @@
       font-size: 12px; color: var(--muted); width: 52px; text-align: left; flex-shrink: 0;
     }
     .ps-volume input[type=range] {
-      flex: 1; -webkit-appearance: none; appearance: none; height: 4px;
-      background: rgba(127,127,127,0.3); border-radius: 2px; outline: none;
+      flex: 1; -webkit-appearance: none; appearance: none;
+      height: 6px; background: rgba(127,127,127,0.3); border-radius: 3px;
+      outline: none; cursor: pointer; margin: 12px 0;
     }
     .ps-volume input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
-      background: var(--accent); cursor: pointer; border: none;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      -webkit-appearance: none; appearance: none;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); cursor: grab; border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .ps-volume input[type=range]::-moz-range-thumb {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); cursor: grab; border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .ps-volume input[type=range]::-moz-range-track {
+      height: 6px; background: rgba(127,127,127,0.3); border-radius: 3px;
     }
 
     .sleep-btns { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
@@ -393,6 +418,7 @@
       .nav-tab { min-width: 0; padding: 0 10px; font-size: 12px; gap: 4px; }
       .nav-tab svg { width: 15px; height: 15px; }
       .leaflet-top.leaflet-right { top: 108px !important; }
+      /* theme button stays circular on mobile */
     }
   </style>
 </head>
@@ -406,15 +432,14 @@
         <svg viewBox="0 0 24 24" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
         <input type="search" id="searchInput" placeholder="Radiosender suchen…" autocomplete="off" spellcheck="false" />
       </div>
-      <button class="icon-btn" id="btnNearby" title="In der Nähe" aria-label="In der Nähe">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>
-      </button>
-      <button class="icon-btn" id="btnTheme" title="Dark / Light" aria-label="Theme">
-        <svg id="iconSun" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
-        <svg id="iconMoon" viewBox="0 0 24 24"><path d="M21 14.5A8.5 8.5 0 1110.5 3 7 7 0 0021 14.5z"/></svg>
+      <button type="button" id="btnTheme" title="Design wechseln" aria-label="Design wechseln">
+        <svg id="themeIcon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
       </button>
     </div>
     <div class="suggestions" id="suggestions">
+      <button class="chip" type="button" id="chipNearby">📍 Nähe</button>
       <button class="chip" data-q="Jazz">🎷 Jazz</button>
       <button class="chip" data-q="Rock">🎸 Rock</button>
       <button class="chip" data-q="News">📰 News</button>
@@ -787,8 +812,21 @@
     function applyTheme(theme, initial) {
       document.documentElement.setAttribute('data-theme', theme);
       localStorage.setItem(LS_THEME, theme);
-      document.getElementById('iconSun').style.display = theme === 'dark' ? 'block' : 'none';
-      document.getElementById('iconMoon').style.display = theme === 'light' ? 'block' : 'none';
+
+      // Icon shows current mode: Moon = dark, Sun = light
+      const icon = document.getElementById('themeIcon');
+      if (theme === 'dark') {
+        icon.setAttribute('fill', 'currentColor');
+        icon.setAttribute('stroke', 'none');
+        icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+      } else {
+        icon.setAttribute('fill', 'none');
+        icon.setAttribute('stroke', 'currentColor');
+        icon.setAttribute('stroke-width', '2');
+        icon.setAttribute('stroke-linecap', 'round');
+        icon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
+      }
+
       if (map) {
         if (theme === 'light') {
           if (map.hasLayer(darkTiles)) map.removeLayer(darkTiles);
@@ -1109,11 +1147,16 @@
       const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
       applyTheme(next);
     });
-    document.getElementById('btnNearby').addEventListener('click', findNearby);
+    document.getElementById('chipNearby').addEventListener('click', findNearby);
 
-    document.getElementById('volumeSlider').addEventListener('input', e => {
-      audio.volume = Number(e.target.value);
-    });
+    const volumeSlider = document.getElementById('volumeSlider');
+    const setVolume = () => {
+      const v = Number(volumeSlider.value);
+      audio.volume = Math.min(1, Math.max(0, v));
+    };
+    volumeSlider.addEventListener('input', setVolume);
+    volumeSlider.addEventListener('change', setVolume);
+    audio.volume = Number(volumeSlider.value) || 1;
 
     document.querySelectorAll('.sleep-btn').forEach(btn => {
       btn.addEventListener('click', () => setSleep(Number(btn.dataset.min)));
