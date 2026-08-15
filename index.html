@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Radio Garden</title>
+  <title>Radio</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
@@ -616,7 +616,7 @@
   <!-- Player sheet (big) -->
   <div class="sheet player-sheet" id="playerSheet">
     <div class="sheet-handle"></div>
-    <div class="ps-cover" id="psCover">📻</div>
+    <div class="ps-cover" id="psCover"><span style="font-size:14px;font-weight:600;color:#888;letter-spacing:-0.3px">Radio</span></div>
     <div class="ps-title" id="psTitle">Kein Sender</div>
     <div class="ps-sub">
       <span class="live-dot" id="psLiveDot" style="display:none"></span>
@@ -640,7 +640,7 @@
   <div class="bottom-stack">
     <!-- White Spotify-style mini player -->
     <div class="player" id="player">
-      <div class="player-cover" id="playerCover">📻</div>
+      <div class="player-cover" id="playerCover"><span style="font-size:11px;font-weight:600;color:#888;letter-spacing:-0.3px">Radio</span></div>
       <div class="player-meta">
         <div class="player-title" id="playerTitle">—</div>
         <div class="player-sub">
@@ -683,7 +683,7 @@
 
   <script>
     const API = 'https://de1.api.radio-browser.info/json';
-    const UA  = 'RadioGardenClone/1.1';
+    const UA  = 'Radio/1.2';
 
     let map, markersLayer;
     let allStations = [];
@@ -717,19 +717,22 @@
     function faviconHtml(s) {
       if (s.favicon && (s.favicon.startsWith('http') || s.favicon.startsWith('//'))) {
         const src = s.favicon.startsWith('//') ? 'https:' + s.favicon : s.favicon;
-        return `<img src="${src}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span>📻</span>')" />`;
+        return `<img src="${src}" alt="" loading="lazy" onerror="this.style.display='none';this.parentElement.insertAdjacentHTML('beforeend','<span style=font-size:11px;font-weight:600;color:#888>Radio</span>')" />`;
       }
-      return '<span>📻</span>';
+      return '<span style="font-size:11px;font-weight:600;color:#888">Radio</span>';
     }
 
     function setCover(el, station) {
       if (!el) return;
+      const isBig = el.id === 'psCover';
+      const size = isBig ? '18px' : '11px';
+      const fallback = `<span style="font-size:${size};font-weight:600;letter-spacing:-0.3px;color:#888">Radio</span>`;
       const url = station && station.favicon;
       if (url && (url.startsWith('http') || url.startsWith('//'))) {
         const src = url.startsWith('//') ? 'https:' + url : url;
-        el.innerHTML = `<img src="${src}" alt="" onerror="this.remove();this.parentElement.innerHTML='📻'" />`;
+        el.innerHTML = `<img src="${src}" alt="" onerror="this.remove();this.parentElement.innerHTML='${fallback.replace(/'/g, "\\'")}'" />`;
       } else {
-        el.innerHTML = '📻';
+        el.innerHTML = fallback;
       }
     }
 
