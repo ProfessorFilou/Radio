@@ -218,21 +218,29 @@
     .player-cover {
       width: 54px; height: 54px;
       border-radius: 14px;
-      background: linear-gradient(145deg, #f2f2f7 0%, #e4e4ea 100%);
+      background: linear-gradient(145deg, #2c2c2e 0%, #1a1a1c 100%);
       overflow: hidden;
       flex-shrink: 0;
       display: grid;
       place-items: center;
-      font-size: 24px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
       box-shadow:
-        0 2px 10px rgba(0,0,0,0.12),
-        inset 0 0 0 0.5px rgba(0,0,0,0.06);
+        0 2px 10px rgba(0,0,0,0.15),
+        inset 0 0 0 0.5px rgba(0,0,0,0.08);
       position: relative;
     }
     .player-cover img {
       width: 100%; height: 100%;
       object-fit: cover;
       display: block;
+    }
+    .logo-fallback {
+      font-weight: 600;
+      color: #8e8e93;
+      letter-spacing: -0.3px;
+      user-select: none;
     }
 
     .player-meta {
@@ -717,19 +725,23 @@
     function normalizeUrl(u) {
       if (!u) return null;
       u = String(u).trim();
-      if (!u) return null;
+      if (!u || u === 'null' || u === 'undefined') return null;
       if (u.startsWith('//')) u = 'https:' + u;
-      if (u.startsWith('http://')) u = 'https://' + u.slice(7);
-      if (!u.startsWith('http')) return null;
+      // keep http as-is first (some hosts only serve over http), also try https version separately
+      if (!/^https?:\/\//i.test(u)) return null;
       return u;
     }
 
     function domainFromStation(s) {
+      if (!s) return null;
       const candidates = [s.homepage, s.favicon, s.url_resolved, s.url];
       for (const c of candidates) {
         try {
-          const u = normalizeUrl(c);
-          if (u) return new URL(u).hostname;
+          let u = String(c || '').trim();
+          if (!u) continue;
+          if (u.startsWith('//')) u = 'https:' + u;
+          if (!/^https?:\/\//i.test(u)) continue;
+          return new URL(u).hostname;
         } catch (_) {}
       }
       return null;
@@ -737,13 +749,28 @@
 
     function logoCandidates(s) {
       const list = [];
-      const fav = normalizeUrl(s.favicon);
-      if (fav) list.push(fav);
+      const seen = new Set();
+      const add = (u) => {
+        if (!u || seen.has(u)) return;
+        seen.add(u);
+        list.push(u);
+      };
+
+      // Original favicon first (best quality when it works)
+      if (s && s.favicon) {
+        const raw = String(s.favicon).trim();
+        if (raw.startsWith('//')) add('https:' + raw);
+        else if (/^https?:\/\//i.test(raw)) {
+          add(raw);
+          if (raw.startsWith('http://')) add('https://' + raw.slice(7));
+        }
+      }
+
+      // Reliable services from domain
       const domain = domainFromStation(s);
       if (domain) {
-        // reliable fallback services
-        list.push(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`);
-        list.push(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
+        add(`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`);
+        add(`https://icons.duckduckgo.com/ip3/${domain}.ico`);
       }
       return list;
     }
@@ -755,9 +782,15 @@
           if (onFail) onFail();
           return;
         }
-        imgEl.onload = () => { imgEl.style.display = 'block'; };
-        imgEl.onerror = () => { i++; tryNext(); };
-        imgEl.src = candidates[i++];
+        const url = candidates[i++];
+        imgEl.onload = () => {
+          imgEl.style.visibility = 'visible';
+        };
+        imgEl.onerror = () => tryNext();
+        imgEl.src = url;
+        if (imgEl.complete && imgEl.naturalWidth > 0) {
+          imgEl.style.visibility = 'visible';
+        }
       };
       tryNext();
     }
@@ -765,28 +798,28 @@
     function faviconHtml(s) {
       const cands = logoCandidates(s);
       if (!cands.length) {
-        return '<span style="font-size:11px;font-weight:600;color:#8e8e93">Radio</span>';
+        return '<span class="logo-fallback">Radio</span>';
       }
-      // first candidate; onerror chain via data attribute handled simply
       const first = cands[0];
       const rest = cands.slice(1).join('|');
       return `<img src="${first}" alt="" loading="lazy" referrerpolicy="no-referrer" data-fallbacks="${rest.replace(/"/g, '')}" onerror="window.__logoFail&&window.__logoFail(this)" />`;
     }
 
-    // global fallback handler for list images
     window.__logoFail = function(img) {
       const rest = (img.dataset.fallbacks || '').split('|').filter(Boolean);
       if (rest.length) {
         img.dataset.fallbacks = rest.slice(1).join('|');
+        img.onerror = function() { window.__logoFail(img); };
         img.src = rest[0];
         return;
       }
-      img.style.display = 'none';
-      if (!img.parentElement.querySelector('span')) {
+      const parent = img.parentElement;
+      img.remove();
+      if (parent && !parent.querySelector('.logo-fallback')) {
         const sp = document.createElement('span');
-        sp.style.cssText = 'font-size:11px;font-weight:600;color:#8e8e93';
+        sp.className = 'logo-fallback';
         sp.textContent = 'Radio';
-        img.parentElement.appendChild(sp);
+        parent.appendChild(sp);
       }
     };
 
@@ -794,20 +827,36 @@
       if (!el) return;
       const isBig = el.id === 'psCover';
       const size = isBig ? '18px' : '11px';
-      const cands = logoCandidates(station || {});
-      el.innerHTML = '';
-      if (!cands.length) {
-        el.innerHTML = `<span style="font-size:${size};font-weight:600;letter-spacing:-0.3px;color:#8e8e93">Radio</span>`;
+      const fallbackHtml = `<span class="logo-fallback" style="font-size:${size}">Radio</span>`;
+
+      if (!station) {
+        el.innerHTML = fallbackHtml;
         return;
       }
-      const img = document.createElement('img');
-      img.alt = '';
-      img.referrerPolicy = 'no-referrer';
-      img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
-      el.appendChild(img);
-      loadLogo(img, cands, () => {
-        el.innerHTML = `<span style="font-size:${size};font-weight:600;letter-spacing:-0.3px;color:#8e8e93">Radio</span>`;
-      });
+
+      const cands = logoCandidates(station);
+      el.innerHTML = fallbackHtml;
+
+      if (!cands.length) return;
+
+      // Try each candidate until one loads
+      const tryLogo = (index) => {
+        if (index >= cands.length) return;
+        const testImg = new Image();
+        testImg.referrerPolicy = 'no-referrer';
+        testImg.onload = () => {
+          el.innerHTML = '';
+          const img = document.createElement('img');
+          img.src = cands[index];
+          img.alt = station.name || 'Radio';
+          img.referrerPolicy = 'no-referrer';
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block;';
+          el.appendChild(img);
+        };
+        testImg.onerror = () => tryLogo(index + 1);
+        testImg.src = cands[index];
+      };
+      tryLogo(0);
     }
 
     function stationSubtitle(s) {
