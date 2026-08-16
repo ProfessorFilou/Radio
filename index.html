@@ -76,13 +76,32 @@
 
     .station-marker {
       width: 13px; height: 13px; border-radius: 50%;
-      background: var(--accent); border: 2px solid #fff;
-      box-shadow: 0 0 0 3px rgba(10,132,255,0.4), 0 2px 10px rgba(0,0,0,0.4);
+      background: var(--marker-color, var(--accent)); border: 2px solid #fff;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--marker-color, var(--accent)) 40%, transparent),
+                  0 2px 10px rgba(0,0,0,0.4);
       cursor: pointer; transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1);
     }
     .station-marker:hover, .station-marker.active {
       transform: scale(1.55); background: #fff;
-      box-shadow: 0 0 0 5px rgba(10,132,255,0.55), 0 4px 16px rgba(0,0,0,0.45);
+      box-shadow: 0 0 0 5px color-mix(in srgb, var(--marker-color, var(--accent)) 55%, transparent),
+                  0 4px 16px rgba(0,0,0,0.45);
+    }
+
+    .genre-legend {
+      pointer-events: none;
+      display: flex; flex-wrap: wrap; gap: 6px;
+      justify-content: center; max-width: 100%;
+      padding: 0 4px 2px;
+    }
+    .genre-legend span {
+      font-size: 10px; color: var(--muted);
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--chip-bg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 2px 8px;
+      backdrop-filter: blur(12px);
+    }
+    .genre-legend i {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
     }
 
     /* Map info popup */
@@ -221,10 +240,29 @@
       box-shadow: 0 12px 40px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.08);
       display: flex; align-items: center; gap: 12px;
       transform: translateY(120%) scale(0.96); opacity: 0;
-      transition: transform 0.4s cubic-bezier(0.32,0.72,0,1), opacity 0.3s ease;
+      transition: transform 0.4s cubic-bezier(0.32,0.72,0,1), opacity 0.3s ease, box-shadow 0.25s;
+      position: relative;
     }
     .player.visible { transform: translateY(0) scale(1); opacity: 1; }
     .player.hidden-by-sheet { transform: translateY(120%) scale(0.96) !important; opacity: 0 !important; pointer-events: none; }
+    .player.error {
+      box-shadow: 0 0 0 2px #ff3b30, 0 12px 40px rgba(255,59,48,0.25);
+    }
+    .player-error-badge {
+      display: none;
+      position: absolute; top: -8px; right: 14px;
+      background: #ff3b30; color: #fff;
+      font-size: 11px; font-weight: 650;
+      padding: 3px 10px; border-radius: 10px;
+      letter-spacing: -0.1px;
+    }
+    .player.error .player-error-badge { display: block; }
+    .player-song {
+      font-size: 11.5px; color: var(--player-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-top: 1px; max-width: 100%;
+    }
+    .player-song.has-song { color: var(--accent); font-weight: 560; }
 
     .player-cover {
       width: 54px; height: 54px; border-radius: 14px;
@@ -462,6 +500,27 @@
     }
     .sleep-btn.active { background: rgba(10,132,255,0.25); border-color: var(--accent); color: var(--text); }
 
+    .ps-song {
+      font-size: 13px; color: var(--muted); margin: -8px auto 14px;
+      max-width: 320px; min-height: 18px;
+    }
+    .ps-song.has-song { color: var(--accent); font-weight: 560; }
+    .ps-error {
+      display: none;
+      width: 100%; max-width: 340px; margin: 0 auto 14px;
+      background: rgba(255,59,48,0.15); border: 1px solid rgba(255,59,48,0.4);
+      color: #ff453a; border-radius: 12px; padding: 10px 14px;
+      font-size: 13px; font-weight: 560; text-align: center;
+    }
+    .ps-error.visible { display: block; }
+    .ps-stats {
+      width: 100%; max-width: 340px; margin: 12px auto 0; text-align: left;
+      background: rgba(127,127,127,0.08); border-radius: 16px; padding: 14px 16px;
+    }
+    .ps-stats-title {
+      font-size: 12px; font-weight: 650; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--muted); margin-bottom: 8px;
+    }
     .ps-info {
       width: 100%; max-width: 340px; margin: 8px auto 0; text-align: left;
       background: rgba(127,127,127,0.08); border-radius: 16px; padding: 14px 16px;
@@ -633,14 +692,24 @@
     </div>
     <div class="suggestions" id="suggestions">
       <button class="chip" type="button" id="chipNearby">📍 Nähe</button>
-      <button class="chip" data-q="Jazz">🎷 Jazz</button>
-      <button class="chip" data-q="Rock">🎸 Rock</button>
-      <button class="chip" data-q="News">📰 News</button>
-      <button class="chip" data-q="Classical">🎻 Klassik</button>
-      <button class="chip" data-q="Pop">🎤 Pop</button>
-      <button class="chip" data-q="Electronic">⚡ Electronic</button>
+      <button class="chip" data-q="Jazz" data-genre="jazz">🎷 Jazz</button>
+      <button class="chip" data-q="Rock" data-genre="rock">🎸 Rock</button>
+      <button class="chip" data-q="News" data-genre="news">📰 News</button>
+      <button class="chip" data-q="Classical" data-genre="classical">🎻 Klassik</button>
+      <button class="chip" data-q="Pop" data-genre="pop">🎤 Pop</button>
+      <button class="chip" data-q="Electronic" data-genre="electronic">⚡ Electronic</button>
       <button class="chip" data-q="Deutschland">🇩🇪 DE</button>
-      <button class="chip" data-q="Lounge">🌙 Lounge</button>
+      <button class="chip" data-q="Lounge" data-genre="lounge">🌙 Lounge</button>
+    </div>
+    <div class="genre-legend">
+      <span><i style="background:#0a84ff"></i>Jazz</span>
+      <span><i style="background:#ff453a"></i>Rock</span>
+      <span><i style="background:#ff9f0a"></i>News</span>
+      <span><i style="background:#bf5af2"></i>Klassik</span>
+      <span><i style="background:#ff375f"></i>Pop</span>
+      <span><i style="background:#64d2ff"></i>Electronic</span>
+      <span><i style="background:#30d158"></i>Lounge</span>
+      <span><i style="background:#8e8e93"></i>Andere</span>
     </div>
   </div>
 
@@ -673,10 +742,12 @@
     <div class="sheet-handle"></div>
     <div class="ps-cover" id="psCover"><span class="logo-fallback" style="font-size:18px">Radio</span></div>
     <div class="ps-title" id="psTitle">Kein Sender</div>
+    <div class="ps-song" id="psSong">Song-Titel erscheint, wenn der Stream ihn sendet</div>
     <div class="ps-sub">
       <span class="live-dot" id="psLiveDot" style="display:none"></span>
       <span id="psSub">Wähle einen Sender auf der Karte</span>
     </div>
+    <div class="ps-error" id="psError">Stream nicht erreichbar – anderen Sender versuchen</div>
     <div class="ps-eq">
       <div class="eq paused" id="psEq"><span></span><span></span><span></span><span></span></div>
     </div>
@@ -715,13 +786,22 @@
       <div class="ps-info-row"><span>Codec</span><span id="infoCodec">—</span></div>
       <div class="ps-info-row"><span>Homepage</span><span id="infoHome">—</span></div>
     </div>
+    <div class="ps-stats" id="psStats">
+      <div class="ps-stats-title">Deine Statistik</div>
+      <div class="ps-info-row"><span>Hörzeit gesamt</span><span id="statTime">0 Min</span></div>
+      <div class="ps-info-row"><span>Sender gehört</span><span id="statStations">0</span></div>
+      <div class="ps-info-row"><span>Favoriten</span><span id="statFavs">0</span></div>
+      <div class="ps-info-row"><span>Sessions</span><span id="statSessions">0</span></div>
+    </div>
   </div>
 
   <div class="bottom-stack">
     <div class="player" id="player">
+      <div class="player-error-badge">Stream offline</div>
       <div class="player-cover" id="playerCover"><span class="logo-fallback">Radio</span></div>
       <div class="player-meta">
         <div class="player-title" id="playerTitle">—</div>
+        <div class="player-song" id="playerSong"></div>
         <div class="player-sub">
           <div class="eq paused" id="miniEq"><span></span><span></span><span></span><span></span></div>
           <span class="live-dot" id="liveDot" style="display:none"></span>
@@ -773,6 +853,38 @@
     const LS_FAVS = 'radio_favs';
     const LS_RECENT = 'radio_recent';
     const LS_THEME = 'radio_theme';
+    const LS_STATS = 'radio_stats';
+
+    const GENRE_COLORS = {
+      jazz: '#0a84ff',
+      rock: '#ff453a',
+      metal: '#ff453a',
+      news: '#ff9f0a',
+      talk: '#ff9f0a',
+      classical: '#bf5af2',
+      klassik: '#bf5af2',
+      pop: '#ff375f',
+      electronic: '#64d2ff',
+      electro: '#64d2ff',
+      house: '#64d2ff',
+      techno: '#64d2ff',
+      lounge: '#30d158',
+      chill: '#30d158',
+      ambient: '#30d158',
+      hiphop: '#af52de',
+      rap: '#af52de',
+      country: '#ac8e68',
+      folk: '#ac8e68'
+    };
+
+    function genreColor(station) {
+      const tags = (station.tags || '').toLowerCase();
+      const name = (station.name || '').toLowerCase();
+      for (const [key, color] of Object.entries(GENRE_COLORS)) {
+        if (tags.includes(key) || name.includes(key)) return color;
+      }
+      return '#8e8e93';
+    }
 
     let map, markersLayer, lightTiles, darkTiles;
     let allStations = [];
@@ -786,6 +898,14 @@
     let sleepEndsAt = null;
     let favorites = loadJson(LS_FAVS, {});
     let recent = loadJson(LS_RECENT, []);
+    let stats = loadJson(LS_STATS, {
+      totalSeconds: 0,
+      stationsPlayed: {},
+      sessions: 0
+    });
+    let listenTick = null;
+    let sessionCounted = false;
+    let currentSongTitle = '';
 
     const audio = document.getElementById('audio');
     const playerEl = document.getElementById('player');
@@ -1059,9 +1179,10 @@
 
     function addMarker(station) {
       if (!station.geo_lat || !station.geo_long) return;
+      const color = genreColor(station);
       const icon = L.divIcon({
         className: '',
-        html: `<div class="station-marker" data-uuid="${station.stationuuid}"></div>`,
+        html: `<div class="station-marker" data-uuid="${station.stationuuid}" style="--marker-color:${color};background:${color}"></div>`,
         iconSize: [13, 13],
         iconAnchor: [6.5, 6.5]
       });
@@ -1086,13 +1207,96 @@
         }
       });
       m.on('click', () => {
-        // popup opens via bindPopup; also highlight
         document.querySelectorAll('.station-marker').forEach(el => {
           el.classList.toggle('active', el.dataset.uuid === station.stationuuid);
         });
       });
       markersLayer.addLayer(m);
     }
+
+    function formatListenTime(sec) {
+      if (sec < 60) return sec + ' Sek';
+      const m = Math.floor(sec / 60);
+      if (m < 60) return m + ' Min';
+      const h = Math.floor(m / 60);
+      const rm = m % 60;
+      return h + ' Std ' + rm + ' Min';
+    }
+
+    function updateStatsUI() {
+      const elTime = document.getElementById('statTime');
+      const elSta = document.getElementById('statStations');
+      const elFav = document.getElementById('statFavs');
+      const elSes = document.getElementById('statSessions');
+      if (!elTime) return;
+      elTime.textContent = formatListenTime(stats.totalSeconds || 0);
+      elSta.textContent = Object.keys(stats.stationsPlayed || {}).length;
+      elFav.textContent = Object.keys(favorites).length;
+      elSes.textContent = stats.sessions || 0;
+    }
+
+    function startListenTimer() {
+      stopListenTimer();
+      listenTick = setInterval(() => {
+        if (!isPlaying) return;
+        stats.totalSeconds = (stats.totalSeconds || 0) + 1;
+        if (stats.totalSeconds % 15 === 0) saveJson(LS_STATS, stats);
+        updateStatsUI();
+      }, 1000);
+    }
+
+    function stopListenTimer() {
+      if (listenTick) { clearInterval(listenTick); listenTick = null; }
+      saveJson(LS_STATS, stats);
+    }
+
+    function setStreamError(on, msg) {
+      playerEl.classList.toggle('error', !!on);
+      const psErr = document.getElementById('psError');
+      if (psErr) {
+        psErr.classList.toggle('visible', !!on);
+        if (msg) psErr.textContent = msg;
+      }
+      if (on) {
+        document.getElementById('playerSub').textContent = msg || 'Stream offline';
+        document.getElementById('psSub').textContent = msg || 'Stream offline';
+      }
+    }
+
+    function setSongTitle(title) {
+      currentSongTitle = title || '';
+      const mini = document.getElementById('playerSong');
+      const full = document.getElementById('psSong');
+      if (mini) {
+        mini.textContent = currentSongTitle;
+        mini.classList.toggle('has-song', !!currentSongTitle);
+      }
+      if (full) {
+        full.textContent = currentSongTitle || 'Song-Titel erscheint, wenn der Stream ihn sendet';
+        full.classList.toggle('has-song', !!currentSongTitle);
+      }
+      if (currentSongTitle && currentStation && 'mediaSession' in navigator) {
+        try {
+          navigator.mediaSession.metadata = new MediaMetadata({
+            title: currentSongTitle,
+            artist: currentStation.name || 'Radio',
+            album: stationSubtitle(currentStation),
+            artwork: logoCandidates(currentStation).slice(0, 1).map(src => ({ src, sizes: '128x128' }))
+          });
+        } catch {}
+      }
+    }
+
+    // Poll media session / audio for title updates (works when browser exposes metadata)
+    setInterval(() => {
+      if (!isPlaying || !currentStation) return;
+      try {
+        const meta = navigator.mediaSession && navigator.mediaSession.metadata;
+        if (meta && meta.title && meta.title !== currentStation.name && meta.title !== currentSongTitle) {
+          setSongTitle(meta.title);
+        }
+      } catch {}
+    }, 3000);
 
     function highlightMarker(uuid) {
       document.querySelectorAll('.station-marker').forEach(el => {
@@ -1271,6 +1475,18 @@
       if (list) currentList = list;
       currentStation = station;
       addRecent(station);
+      setStreamError(false);
+      setSongTitle('');
+
+      // stats
+      if (!sessionCounted) {
+        stats.sessions = (stats.sessions || 0) + 1;
+        sessionCounted = true;
+      }
+      if (!stats.stationsPlayed) stats.stationsPlayed = {};
+      stats.stationsPlayed[station.stationuuid] = (stats.stationsPlayed[station.stationuuid] || 0) + 1;
+      saveJson(LS_STATS, stats);
+      updateStatsUI();
 
       playerEl.classList.add('visible');
       document.getElementById('playerTitle').textContent = station.name || 'Unbekannt';
@@ -1296,15 +1512,17 @@
       audio.src = url;
       audio.play().then(() => {
         isPlaying = true;
+        setStreamError(false);
         updatePlayIcon();
+        startListenTimer();
         if ('mediaSession' in navigator) {
           try { navigator.mediaSession.playbackState = 'playing'; } catch {}
         }
       }).catch(() => {
-        document.getElementById('playerSub').textContent = 'Stream nicht erreichbar';
-        document.getElementById('psSub').textContent = 'Stream nicht erreichbar';
         isPlaying = false;
+        setStreamError(true, 'Stream nicht erreichbar – anderen Sender versuchen');
         updatePlayIcon();
+        stopListenTimer();
       });
 
       try { fetch(`${API}/url/${station.stationuuid}`, { headers: { 'User-Agent': UA } }).catch(() => {}); } catch {}
@@ -1326,6 +1544,7 @@
       } else {
         home.textContent = '—';
       }
+      updateStatsUI();
       updatePlayIcon();
     }
 
@@ -1444,13 +1663,41 @@
       btn.addEventListener('click', () => setSleep(Number(btn.dataset.min)));
     });
 
-    audio.addEventListener('playing', () => { isPlaying = true; updatePlayIcon(); });
-    audio.addEventListener('pause', () => { isPlaying = false; updatePlayIcon(); });
-    audio.addEventListener('error', () => {
-      document.getElementById('playerSub').textContent = 'Stream-Fehler';
-      document.getElementById('psSub').textContent = 'Stream-Fehler';
-      isPlaying = false; updatePlayIcon();
+    audio.addEventListener('playing', () => {
+      isPlaying = true;
+      setStreamError(false);
+      updatePlayIcon();
+      startListenTimer();
     });
+    audio.addEventListener('pause', () => {
+      isPlaying = false;
+      updatePlayIcon();
+      stopListenTimer();
+    });
+    audio.addEventListener('error', () => {
+      isPlaying = false;
+      setStreamError(true, 'Stream-Fehler – Sender offline oder blockiert');
+      updatePlayIcon();
+      stopListenTimer();
+    });
+    audio.addEventListener('stalled', () => {
+      if (isPlaying) {
+        document.getElementById('playerSub').textContent = 'Puffert…';
+      }
+    });
+    audio.addEventListener('waiting', () => {
+      if (isPlaying) {
+        document.getElementById('playerSub').textContent = 'Puffert…';
+      }
+    });
+    audio.addEventListener('canplay', () => {
+      if (currentStation && !playerEl.classList.contains('error')) {
+        document.getElementById('playerSub').textContent = stationSubtitle(currentStation);
+      }
+    });
+
+    updateStatsUI();
+    window.addEventListener('beforeunload', () => saveJson(LS_STATS, stats));
 
     document.addEventListener('keydown', e => {
       if (e.target.tagName === 'INPUT') return;
