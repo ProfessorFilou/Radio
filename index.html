@@ -490,12 +490,11 @@
 
     /* Live Top 3 – inside list sheet */
     .live-section {
-      display: none;
+      display: block;
       padding: 4px 4px 12px;
-      margin-bottom: 4px;
+      margin-bottom: 8px;
       border-bottom: 1px solid var(--border);
     }
-    .live-section.visible { display: block; }
     .live-section-title {
       display: flex; align-items: center; gap: 8px;
       font-size: 12px; font-weight: 650; text-transform: uppercase;
@@ -935,7 +934,6 @@
       </div>
     </div>
     <div class="results" id="results">
-      <div class="live-section" id="liveSection" aria-label="Gerade am meisten gehört"></div>
       <div id="resultsList"><div class="empty-state">Lade Sender…</div></div>
     </div>
   </div>
@@ -1007,31 +1005,41 @@
     </div>
   </div>
 
-  <!-- Stats sheet -->
+  <!-- Charts sheet -->
   <div class="sheet stats-sheet" id="statsSheet">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <div>
-        <div class="sheet-title">Statistik</div>
-        <div class="sheet-count">Dein Hörverhalten</div>
+        <div class="sheet-title">Charts</div>
+        <div class="sheet-count">Live & dein Hörverhalten</div>
       </div>
     </div>
-    <div class="stats-cards">
-      <div class="stats-card">
-        <div class="stats-card-val" id="statTime">0 Min</div>
-        <div class="stats-card-label">Hörzeit</div>
+    <div class="results" style="padding-top:0">
+      <div class="live-section visible" id="liveSection" aria-label="Gerade am meisten gehört">
+        <div class="live-section-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="color:var(--accent)"><path d="M12 3a9 9 0 0 0-9 9v7a3 3 0 0 0 3 3h1a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5v-2a7 7 0 0 1 14 0v2h-2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h1a3 3 0 0 0 3-3v-7a9 9 0 0 0-9-9z"/></svg>
+          Top Live
+        </div>
+        <div id="liveList"><div class="empty-state" style="padding:16px">Noch niemand live – starte einen Sender.</div></div>
       </div>
-      <div class="stats-card">
-        <div class="stats-card-val" id="statStations">0</div>
-        <div class="stats-card-label">Sender</div>
-      </div>
-      <div class="stats-card">
-        <div class="stats-card-val" id="statFavs">0</div>
-        <div class="stats-card-label">Favoriten</div>
-      </div>
-      <div class="stats-card">
-        <div class="stats-card-val" id="statSessions">0</div>
-        <div class="stats-card-label">Sessions</div>
+      <div class="section-label">Deine Statistik</div>
+      <div class="stats-cards">
+        <div class="stats-card">
+          <div class="stats-card-val" id="statTime">0 Min</div>
+          <div class="stats-card-label">Hörzeit</div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-card-val" id="statStations">0</div>
+          <div class="stats-card-label">Sender</div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-card-val" id="statFavs">0</div>
+          <div class="stats-card-label">Favoriten</div>
+        </div>
+        <div class="stats-card">
+          <div class="stats-card-val" id="statSessions">0</div>
+          <div class="stats-card-label">Sessions</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1081,7 +1089,7 @@
       </button>
       <button class="nav-tab" id="tabStats" data-view="stats">
         <svg viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7" stroke-linecap="round"/></svg>
-        Stats
+        Charts
       </button>
       <button class="nav-tab" id="tabPlayer" data-view="player">
         <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" stroke-linecap="round"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -2043,36 +2051,28 @@
     }
 
     function renderTopLive() {
-      const el = document.getElementById('liveSection');
-      if (!el) return;
+      const list = document.getElementById('liveList');
+      if (!list) return;
+      const ear = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M12 3a9 9 0 0 0-9 9v7a3 3 0 0 0 3 3h1a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5v-2a7 7 0 0 1 14 0v2h-2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h1a3 3 0 0 0 3-3v-7a9 9 0 0 0-9-9z"/></svg>`;
       if (!topLiveStations.length) {
-        el.classList.remove('visible');
-        el.innerHTML = '';
+        list.innerHTML = `<div class="empty-state" style="padding:16px">Noch niemand live – starte einen Sender.</div>`;
         return;
       }
-      el.classList.add('visible');
-      // Headphones icon (filled, always visible)
-      const ear = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M12 3a9 9 0 0 0-9 9v7a3 3 0 0 0 3 3h1a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5v-2a7 7 0 0 1 14 0v2h-2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h1a3 3 0 0 0 3-3v-7a9 9 0 0 0-9-9z"/></svg>`;
-      el.innerHTML = `
-        <div class="live-section-title">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="color:var(--accent)"><path d="M12 3a9 9 0 0 0-9 9v7a3 3 0 0 0 3 3h1a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5v-2a7 7 0 0 1 14 0v2h-2a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h1a3 3 0 0 0 3-3v-7a9 9 0 0 0-9-9z"/></svg>
-          Gerade live
-        </div>
-        ${topLiveStations.map((s, i) => `
-          <div class="live-item" data-uuid="${s.stationuuid}">
-            <div class="live-rank">${i + 1}</div>
-            <div class="live-fav">${faviconHtml(s)}</div>
-            <div class="live-meta">
-              <div class="live-name">${escapeHtml(s.name)}</div>
-              <div class="live-sub">${escapeHtml(stationSubtitle(s))}</div>
-            </div>
-            <div class="live-listeners">
-              ${ear}
-              <span class="num">${s.count}</span>
-            </div>
+      list.innerHTML = topLiveStations.map((s, i) => `
+        <div class="live-item" data-uuid="${s.stationuuid}">
+          <div class="live-rank">${i + 1}</div>
+          <div class="live-fav">${faviconHtml(s)}</div>
+          <div class="live-meta">
+            <div class="live-name">${escapeHtml(s.name)}</div>
+            <div class="live-sub">${escapeHtml(stationSubtitle(s))}</div>
           </div>
-        `).join('')}`;
-      el.querySelectorAll('.live-item').forEach(item => {
+          <div class="live-listeners">
+            ${ear}
+            <span class="num">${s.count}</span>
+          </div>
+        </div>
+      `).join('');
+      list.querySelectorAll('.live-item').forEach(item => {
         item.addEventListener('click', () => {
           const s = topLiveStations.find(x => x.stationuuid === item.dataset.uuid);
           if (!s) return;
