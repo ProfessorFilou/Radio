@@ -126,7 +126,12 @@
       height: auto !important;
     }
     html.is-standalone .bottom-stack {
-      padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+      padding-bottom: max(4px, env(safe-area-inset-bottom, 0px)) !important;
+    }
+    html.is-standalone .player:not(.visible) {
+      height: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
     }
 
     .leaflet-container { background: var(--bg); font: inherit; }
@@ -333,26 +338,44 @@
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
       display: flex; flex-direction: column; align-items: center;
       padding: 0 12px;
-      padding-bottom: max(10px, var(--safe-bottom));
-      pointer-events: none; gap: 10px;
+      padding-bottom: max(8px, var(--safe-bottom));
+      pointer-events: none; gap: 8px;
     }
 
-    /* MINI PLAYER */
+    /* MINI PLAYER – takes no space when hidden (fixes black gap above nav) */
     .player {
-      pointer-events: auto; width: 100%; max-width: 460px;
+      pointer-events: none;
+      width: 100%; max-width: 460px;
       background: var(--player-bg); color: var(--player-text);
-      border-radius: 28px; padding: 11px 12px 11px 11px;
+      border-radius: 28px; padding: 0;
       box-shadow: 0 12px 40px rgba(0,0,0,0.28), 0 2px 8px rgba(0,0,0,0.08);
       display: flex; align-items: center; gap: 12px;
-      transform: translateY(120%) scale(0.96); opacity: 0;
-      transition: transform 0.4s cubic-bezier(0.32,0.72,0,1), opacity 0.3s ease, box-shadow 0.25s;
+      height: 0;
+      margin: 0;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(16px) scale(0.96);
+      transition: transform 0.35s cubic-bezier(0.32,0.72,0,1), opacity 0.25s ease, height 0.3s ease, padding 0.3s ease, box-shadow 0.25s;
       position: relative;
       cursor: pointer;
     }
     .player .player-btns,
     .player .player-btns * { cursor: pointer; }
-    .player.visible { transform: translateY(0) scale(1); opacity: 1; }
-    .player.hidden-by-sheet { transform: translateY(120%) scale(0.96) !important; opacity: 0 !important; pointer-events: none; }
+    .player.visible {
+      pointer-events: auto;
+      height: 70px;
+      padding: 11px 12px 11px 11px;
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .player.hidden-by-sheet {
+      pointer-events: none !important;
+      height: 0 !important;
+      padding: 0 !important;
+      opacity: 0 !important;
+      transform: translateY(16px) scale(0.96) !important;
+      overflow: hidden !important;
+    }
     .player.error {
       box-shadow: 0 0 0 2px #ff3b30, 0 12px 40px rgba(255,59,48,0.25);
     }
@@ -815,8 +838,11 @@
       .player {
         max-width: 100%;
         border-radius: 22px;
-        padding: 10px;
         gap: 10px;
+      }
+      .player.visible {
+        height: 64px;
+        padding: 10px;
       }
       .player-cover { width: 48px; height: 48px; border-radius: 12px; }
       .player-title { font-size: 14px; }
