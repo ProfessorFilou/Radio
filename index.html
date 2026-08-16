@@ -642,10 +642,56 @@
     .sleep-btn.active { background: rgba(10,132,255,0.25); border-color: var(--accent); color: var(--text); }
 
     .ps-song {
-      font-size: 13px; color: var(--muted); margin: -8px auto 14px;
-      max-width: 320px; min-height: 18px;
+      display: none;
+      font-size: 14px; color: var(--accent); font-weight: 560;
+      margin: 0 auto 10px; max-width: 320px;
     }
-    .ps-song.has-song { color: var(--accent); font-weight: 560; }
+    .ps-song.has-song { display: block; }
+    .ps-similar {
+      width: 100%; max-width: 360px; margin: 16px auto 0; text-align: left;
+    }
+    .ps-similar-title {
+      font-size: 12px; font-weight: 650; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--muted); padding: 0 4px 10px;
+    }
+    .ps-similar-list { display: flex; flex-direction: column; gap: 2px; }
+    .ps-similar-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 8px 8px; border-radius: 12px; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .ps-similar-item:hover { background: rgba(127,127,127,0.1); }
+    .ps-similar-fav {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: linear-gradient(145deg, #3a3a3c, #2c2c2e);
+      overflow: hidden; flex-shrink: 0; display: grid; place-items: center;
+    }
+    .ps-similar-fav img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ps-similar-meta { flex: 1; min-width: 0; }
+    .ps-similar-name {
+      font-size: 14px; font-weight: 550;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ps-similar-sub {
+      font-size: 11.5px; color: var(--muted); margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .stats-sheet .stats-cards {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      padding: 8px 16px 20px;
+    }
+    .stats-card {
+      background: rgba(127,127,127,0.1); border-radius: 16px;
+      padding: 16px 14px; text-align: center;
+    }
+    .stats-card-val {
+      font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+      color: var(--text); margin-bottom: 4px;
+    }
+    .stats-card-label {
+      font-size: 12px; color: var(--muted); font-weight: 520;
+    }
     .ps-error {
       display: none;
       width: 100%; max-width: 340px; margin: 0 auto 14px;
@@ -876,7 +922,7 @@
     <div class="sheet-handle"></div>
     <div class="ps-cover" id="psCover"><span class="logo-fallback" style="font-size:18px">Radio</span></div>
     <div class="ps-title" id="psTitle">Kein Sender</div>
-    <div class="ps-song" id="psSong">Song-Titel erscheint, wenn der Stream ihn sendet</div>
+    <div class="ps-song" id="psSong"></div>
     <div class="ps-sub">
       <span class="live-dot" id="psLiveDot" style="display:none"></span>
       <span id="psSub">Wähle einen Sender auf der Karte</span>
@@ -920,12 +966,38 @@
       <div class="ps-info-row"><span>Codec</span><span id="infoCodec">—</span></div>
       <div class="ps-info-row"><span>Homepage</span><span id="infoHome">—</span></div>
     </div>
-    <div class="ps-stats" id="psStats">
-      <div class="ps-stats-title">Deine Statistik</div>
-      <div class="ps-info-row"><span>Hörzeit gesamt</span><span id="statTime">0 Min</span></div>
-      <div class="ps-info-row"><span>Sender gehört</span><span id="statStations">0</span></div>
-      <div class="ps-info-row"><span>Favoriten</span><span id="statFavs">0</span></div>
-      <div class="ps-info-row"><span>Sessions</span><span id="statSessions">0</span></div>
+    <div class="ps-similar" id="psSimilar">
+      <div class="ps-similar-title">Ähnliche Sender</div>
+      <div class="ps-similar-list" id="psSimilarList"></div>
+    </div>
+  </div>
+
+  <!-- Stats sheet -->
+  <div class="sheet stats-sheet" id="statsSheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-title">Statistik</div>
+        <div class="sheet-count">Dein Hörverhalten</div>
+      </div>
+    </div>
+    <div class="stats-cards">
+      <div class="stats-card">
+        <div class="stats-card-val" id="statTime">0 Min</div>
+        <div class="stats-card-label">Hörzeit</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-card-val" id="statStations">0</div>
+        <div class="stats-card-label">Sender</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-card-val" id="statFavs">0</div>
+        <div class="stats-card-label">Favoriten</div>
+      </div>
+      <div class="stats-card">
+        <div class="stats-card-val" id="statSessions">0</div>
+        <div class="stats-card-label">Sessions</div>
+      </div>
     </div>
   </div>
 
@@ -971,6 +1043,10 @@
       <button class="nav-tab" id="tabLibrary" data-view="library">
         <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
         Bibliothek
+      </button>
+      <button class="nav-tab" id="tabStats" data-view="stats">
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M12 20V4M20 20v-7" stroke-linecap="round"/></svg>
+        Stats
       </button>
       <button class="nav-tab" id="tabPlayer" data-view="player">
         <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13" stroke-linecap="round"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
@@ -1046,6 +1122,7 @@
     const listSheet = document.getElementById('listSheet');
     const librarySheet = document.getElementById('librarySheet');
     const playerSheet = document.getElementById('playerSheet');
+    const statsSheet = document.getElementById('statsSheet');
     const loadingBar = document.getElementById('loadingBar');
 
     function loadJson(key, fallback) {
@@ -1433,7 +1510,7 @@
     }
 
     function setSongTitle(title) {
-      currentSongTitle = title || '';
+      currentSongTitle = (title || '').trim();
       const mini = document.getElementById('playerSong');
       const full = document.getElementById('psSong');
       if (mini) {
@@ -1441,7 +1518,7 @@
         mini.classList.toggle('has-song', !!currentSongTitle);
       }
       if (full) {
-        full.textContent = currentSongTitle || 'Song-Titel erscheint, wenn der Stream ihn sendet';
+        full.textContent = currentSongTitle;
         full.classList.toggle('has-song', !!currentSongTitle);
       }
       if (currentSongTitle && currentStation && 'mediaSession' in navigator) {
@@ -1718,7 +1795,7 @@
       } else {
         home.textContent = '—';
       }
-      updateStatsUI();
+      renderSimilar(s);
       updatePlayIcon();
     }
 
@@ -1775,22 +1852,70 @@
 
     function setView(view) {
       currentView = view;
-      ['map','list','library','player'].forEach(v => {
+      ['map','list','library','stats','player'].forEach(v => {
         const tab = document.getElementById('tab' + v.charAt(0).toUpperCase() + v.slice(1));
         if (tab) tab.classList.toggle('active', view === v);
       });
       listSheet.classList.toggle('open', view === 'list');
       librarySheet.classList.toggle('open', view === 'library');
+      statsSheet.classList.toggle('open', view === 'stats');
       playerSheet.classList.toggle('open', view === 'player');
       document.body.classList.toggle('map-dimmed', view !== 'map');
       playerEl.classList.toggle('hidden-by-sheet', view !== 'map');
-      // reset any drag transform
-      [listSheet, librarySheet, playerSheet].forEach(s => {
+      [listSheet, librarySheet, statsSheet, playerSheet].forEach(s => {
+        if (!s) return;
         s.style.transform = '';
         s.classList.remove('dragging');
       });
       if (view === 'library') renderLibrary();
+      if (view === 'stats') updateStatsUI();
       if (view === 'player') syncPlayerSheet();
+    }
+
+    function findSimilarStations(station, limit = 6) {
+      if (!station || !allStations.length) return [];
+      const tags = (station.tags || '').toLowerCase().split(',').map(t => t.trim()).filter(Boolean);
+      const country = (station.country || '').toLowerCase();
+      const scored = [];
+      for (const s of allStations) {
+        if (s.stationuuid === station.stationuuid) continue;
+        if (isStationOffline(s)) continue;
+        let score = 0;
+        const st = (s.tags || '').toLowerCase();
+        tags.forEach(t => { if (t && st.includes(t)) score += 3; });
+        if (country && (s.country || '').toLowerCase() === country) score += 2;
+        if (score > 0) scored.push({ s, score });
+      }
+      scored.sort((a, b) => b.score - a.score || (b.s.votes || 0) - (a.s.votes || 0));
+      return scored.slice(0, limit).map(x => x.s);
+    }
+
+    function renderSimilar(station) {
+      const list = document.getElementById('psSimilarList');
+      const wrap = document.getElementById('psSimilar');
+      if (!list || !wrap) return;
+      const similar = findSimilarStations(station);
+      if (!similar.length) {
+        wrap.style.display = 'none';
+        list.innerHTML = '';
+        return;
+      }
+      wrap.style.display = 'block';
+      list.innerHTML = similar.map(s => `
+        <div class="ps-similar-item" data-uuid="${s.stationuuid}">
+          <div class="ps-similar-fav">${faviconHtml(s)}</div>
+          <div class="ps-similar-meta">
+            <div class="ps-similar-name">${escapeHtml(s.name)}</div>
+            <div class="ps-similar-sub">${escapeHtml(stationSubtitle(s))}</div>
+          </div>
+        </div>
+      `).join('');
+      list.querySelectorAll('.ps-similar-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const s = similar.find(x => x.stationuuid === item.dataset.uuid);
+          if (s) playStation(s, similar);
+        });
+      });
     }
 
     // ——— Swipe down to close sheets ———
@@ -1986,6 +2111,7 @@
     document.getElementById('tabMap').addEventListener('click', () => setView('map'));
     document.getElementById('tabList').addEventListener('click', () => setView('list'));
     document.getElementById('tabLibrary').addEventListener('click', () => setView('library'));
+    document.getElementById('tabStats').addEventListener('click', () => setView('stats'));
     document.getElementById('tabPlayer').addEventListener('click', () => setView('player'));
 
     document.getElementById('btnPlay').addEventListener('click', togglePlay);
@@ -2069,6 +2195,7 @@
 
     enableSheetSwipe(listSheet);
     enableSheetSwipe(librarySheet);
+    enableSheetSwipe(statsSheet);
     enableSheetSwipe(playerSheet);
 
     // Start
