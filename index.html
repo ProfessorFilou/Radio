@@ -1,11 +1,12 @@
-<<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Radio</title>
+  <link rel="icon" type="image/png" href="./Radio.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
-  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <link rel="apple-touch-icon" href="./Radio.png" />
   <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#0a84ff" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -14,6 +15,8 @@
   <meta name="apple-mobile-web-app-title" content="Radio" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <style>
     :root, [data-theme="dark"] {
       --bg: #050506;
@@ -258,7 +261,10 @@
       transform: translateY(120%) scale(0.96); opacity: 0;
       transition: transform 0.4s cubic-bezier(0.32,0.72,0,1), opacity 0.3s ease, box-shadow 0.25s;
       position: relative;
+      cursor: pointer;
     }
+    .player .player-btns,
+    .player .player-btns * { cursor: pointer; }
     .player.visible { transform: translateY(0) scale(1); opacity: 1; }
     .player.hidden-by-sheet { transform: translateY(120%) scale(0.96) !important; opacity: 0 !important; pointer-events: none; }
     .player.error {
@@ -390,7 +396,54 @@
     .sheet-handle {
       width: 36px; height: 5px; background: rgba(127,127,127,0.35);
       border-radius: 3px; margin: 10px auto 6px; flex-shrink: 0;
+      cursor: grab;
     }
+    .sheet.dragging {
+      transition: none !important;
+    }
+
+    /* Live Top 3 */
+    .top-live {
+      pointer-events: auto;
+      display: none;
+      width: 100%;
+      max-width: 440px;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding: 0 2px;
+    }
+    .top-live.visible { display: flex; }
+    .top-live::-webkit-scrollbar { display: none; }
+    .top-live-chip {
+      flex-shrink: 0;
+      display: flex; align-items: center; gap: 8px;
+      height: 36px; padding: 0 12px 0 6px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: var(--chip-bg);
+      backdrop-filter: blur(16px);
+      color: var(--text);
+      font-size: 12.5px; font-weight: 560;
+      cursor: pointer;
+      transition: transform 0.15s, background 0.15s;
+    }
+    .top-live-chip:active { transform: scale(0.96); }
+    .top-live-rank {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      font-size: 11px; font-weight: 700;
+      display: grid; place-items: center;
+    }
+    .top-live-chip:nth-child(2) .top-live-rank { background: #8e8e93; }
+    .top-live-chip:nth-child(3) .top-live-rank { background: #ac8e68; }
+    .top-live-name {
+      max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .top-live-count {
+      color: var(--muted); font-size: 11px; font-weight: 500;
+    }
+
     .sheet-header { padding: 4px 20px 10px; flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
     .sheet-title { font-size: 20px; font-weight: 670; letter-spacing: -0.4px; }
     .sheet-count { font-size: 13px; color: var(--muted); margin-top: 2px; }
@@ -717,6 +770,7 @@
       <button class="chip" data-q="Deutschland"><span class="chip-dot" style="--dot:#8e8e93;background:#8e8e93"></span>DE</button>
       <button class="chip" data-q="Lounge" data-genre="lounge"><span class="chip-dot" style="--dot:#30d158;background:#30d158"></span>Lounge</button>
     </div>
+    <div class="top-live" id="topLive" aria-label="Gerade am meisten gehört"></div>
   </div>
 
   <!-- List sheet -->
@@ -1547,6 +1601,7 @@
         setStreamError(false);
         updatePlayIcon();
         startListenTimer();
+        setLiveListening(station);
         if ('mediaSession' in navigator) {
           try { navigator.mediaSession.playbackState = 'playing'; } catch {}
         }
@@ -1556,6 +1611,7 @@
         markStationOffline(station.stationuuid);
         updatePlayIcon();
         stopListenTimer();
+        clearLiveListening();
       });
 
       try { fetch(`${API}/url/${station.stationuuid}`, { headers: { 'User-Agent': UA } }).catch(() => {}); } catch {}
@@ -1643,9 +1699,174 @@
       playerSheet.classList.toggle('open', view === 'player');
       document.body.classList.toggle('map-dimmed', view !== 'map');
       playerEl.classList.toggle('hidden-by-sheet', view !== 'map');
+      // reset any drag transform
+      [listSheet, librarySheet, playerSheet].forEach(s => {
+        s.style.transform = '';
+        s.classList.remove('dragging');
+      });
       if (view === 'library') renderLibrary();
       if (view === 'player') syncPlayerSheet();
     }
+
+    // ——— Swipe down to close sheets ———
+    function enableSheetSwipe(sheet) {
+      let startY = 0, currentY = 0, dragging = false;
+      const onStart = (y) => { startY = y; currentY = y; dragging = true; sheet.classList.add('dragging'); };
+      const onMove = (y) => {
+        if (!dragging || !sheet.classList.contains('open')) return;
+        currentY = y;
+        const dy = Math.max(0, currentY - startY);
+        sheet.style.transform = `translateY(${dy}px)`;
+        sheet.style.opacity = String(Math.max(0.4, 1 - dy / 400));
+      };
+      const onEnd = () => {
+        if (!dragging) return;
+        dragging = false;
+        sheet.classList.remove('dragging');
+        const dy = Math.max(0, currentY - startY);
+        sheet.style.transform = '';
+        sheet.style.opacity = '';
+        if (dy > 100) setView('map');
+      };
+      sheet.addEventListener('touchstart', (e) => {
+        if (e.target.closest('.results, input, button, a, .ps-volume')) return;
+        onStart(e.touches[0].clientY);
+      }, { passive: true });
+      sheet.addEventListener('touchmove', (e) => {
+        if (!dragging) return;
+        onMove(e.touches[0].clientY);
+      }, { passive: true });
+      sheet.addEventListener('touchend', onEnd);
+      sheet.addEventListener('touchcancel', onEnd);
+    }
+
+    // ——— Firebase live listeners (Top 3) ———
+    let db = null;
+    let clientId = sessionStorage.getItem('radio_client_id');
+    if (!clientId) {
+      clientId = 'c_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      sessionStorage.setItem('radio_client_id', clientId);
+    }
+    let liveStationId = null;
+    let topLiveStations = [];
+
+    function initFirebase() {
+      try {
+        const firebaseConfig = {
+          apiKey: "AIzaSyAbyWIo30z2ehONxOWaCmQy1nIpNqK7FMA",
+          authDomain: "api-keys-97aed.firebaseapp.com",
+          databaseURL: "https://api-keys-97aed-default-rtdb.firebaseio.com",
+          projectId: "api-keys-97aed",
+          storageBucket: "api-keys-97aed.firebasestorage.app",
+          messagingSenderId: "742549090318",
+          appId: "1:742549090318:web:8502480a79e0a40c62cc5f"
+        };
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        db = firebase.database();
+
+        // live/{uuid}/meta + live/{uuid}/listeners/{clientId}
+        db.ref('live').on('value', (snap) => {
+          const rows = [];
+          snap.forEach((child) => {
+            const v = child.val() || {};
+            const listeners = v.listeners || {};
+            const count = typeof listeners === 'object' ? Object.keys(listeners).length : 0;
+            if (count > 0) {
+              const meta = v.meta || v;
+              rows.push({
+                stationuuid: child.key,
+                name: meta.name || 'Sender',
+                count,
+                favicon: meta.favicon || '',
+                geo_lat: meta.geo_lat || null,
+                geo_long: meta.geo_long || null,
+                country: meta.country || '',
+                tags: meta.tags || '',
+                url: meta.url || '',
+                url_resolved: meta.url_resolved || ''
+              });
+            }
+          });
+          rows.sort((a, b) => b.count - a.count);
+          topLiveStations = rows.slice(0, 3);
+          renderTopLive();
+        });
+      } catch (e) {
+        console.warn('Firebase init failed', e);
+        db = null;
+      }
+    }
+
+    function renderTopLive() {
+      const el = document.getElementById('topLive');
+      if (!el) return;
+      if (!topLiveStations.length) {
+        el.classList.remove('visible');
+        el.innerHTML = '';
+        return;
+      }
+      el.classList.add('visible');
+      el.innerHTML = topLiveStations.map((s, i) => `
+        <button type="button" class="top-live-chip" data-uuid="${s.stationuuid}">
+          <span class="top-live-rank">${i + 1}</span>
+          <span class="top-live-name">${escapeHtml(s.name)}</span>
+          <span class="top-live-count">${s.count} live</span>
+        </button>
+      `).join('');
+      el.querySelectorAll('.top-live-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const s = topLiveStations.find(x => x.stationuuid === btn.dataset.uuid);
+          if (!s) return;
+          const full = allStations.find(x => x.stationuuid === s.stationuuid) || s;
+          if (full.geo_lat && full.geo_long) {
+            setView('map');
+            map.flyTo([full.geo_lat, full.geo_long], Math.max(map.getZoom(), 6), { duration: 1.2 });
+            setTimeout(() => playStation(full, allStations), 400);
+          } else {
+            playStation(full, allStations);
+          }
+        });
+      });
+    }
+
+    async function setLiveListening(station) {
+      if (!db || !station || !station.stationuuid) return;
+      const id = station.stationuuid;
+      if (liveStationId && liveStationId !== id) await clearLiveListening();
+      liveStationId = id;
+      try {
+        const metaRef = db.ref('live/' + id + '/meta');
+        const listenerRef = db.ref('live/' + id + '/listeners/' + clientId);
+        await metaRef.update({
+          name: station.name || 'Sender',
+          favicon: station.favicon || '',
+          country: station.country || '',
+          tags: station.tags || '',
+          geo_lat: station.geo_lat || null,
+          geo_long: station.geo_long || null,
+          url: station.url || '',
+          url_resolved: station.url_resolved || '',
+          updated: firebase.database.ServerValue.TIMESTAMP
+        });
+        await listenerRef.set(true);
+        listenerRef.onDisconnect().remove();
+      } catch (e) {
+        console.warn('setLiveListening', e);
+      }
+    }
+
+    async function clearLiveListening() {
+      if (!db || !liveStationId) return;
+      const id = liveStationId;
+      liveStationId = null;
+      try {
+        await db.ref('live/' + id + '/listeners/' + clientId).remove();
+      } catch (e) {
+        console.warn('clearLiveListening', e);
+      }
+    }
+
+    window.addEventListener('pagehide', () => { clearLiveListening(); });
 
     // Events
     document.getElementById('searchInput').addEventListener('input', e => {
@@ -1701,11 +1922,13 @@
       setStreamError(false);
       updatePlayIcon();
       startListenTimer();
+      if (currentStation) setLiveListening(currentStation);
     });
     audio.addEventListener('pause', () => {
       isPlaying = false;
       updatePlayIcon();
       stopListenTimer();
+      clearLiveListening();
     });
     audio.addEventListener('error', () => {
       isPlaying = false;
@@ -1738,9 +1961,21 @@
       if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
     });
 
+    // Mini-player → Player tab (not when clicking controls)
+    playerEl.addEventListener('click', (e) => {
+      if (e.target.closest('.player-btns, button, a')) return;
+      if (!currentStation) return;
+      setView('player');
+    });
+
+    enableSheetSwipe(listSheet);
+    enableSheetSwipe(librarySheet);
+    enableSheetSwipe(playerSheet);
+
     // Start
     initMap();
     loadMapStations();
+    initFirebase();
 
     // PWA service worker
     if ('serviceWorker' in navigator) {
