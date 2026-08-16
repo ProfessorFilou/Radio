@@ -62,28 +62,37 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body {
+    html {
       width: 100%;
       height: 100%;
-      height: 100dvh;
-      max-height: 100dvh;
+      height: -webkit-fill-available;
+      background: var(--bg);
+    }
+    body {
+      width: 100%;
+      height: 100%;
+      min-height: 100%;
+      min-height: 100dvh;
+      min-height: -webkit-fill-available;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
       overflow: hidden;
       overscroll-behavior: none;
       position: fixed;
-      inset: 0;
+      top: 0; left: 0; right: 0; bottom: 0;
       -webkit-font-smoothing: antialiased;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
 
     #map {
-      position: absolute;
+      position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      width: 100%; height: 100%;
-      z-index: 1; background: var(--bg);
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      background: var(--bg);
     }
     .leaflet-container { background: var(--bg); font: inherit; }
     .leaflet-top.leaflet-right { top: 100px !important; right: 12px !important; }
@@ -226,7 +235,7 @@
 
     /* TOP */
     .top-bar {
-      position: absolute; top: 0; left: 0; right: 0; z-index: 20;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 20;
       padding: 12px 14px 0; padding-top: max(12px, env(safe-area-inset-top));
       pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 10px;
     }
@@ -281,11 +290,12 @@
       box-shadow: 0 0 0 2px color-mix(in srgb, var(--dot, #8e8e93) 35%, transparent);
     }
 
-    /* BOTTOM STACK */
+    /* BOTTOM STACK – only safe-area, no extra black gap */
     .bottom-stack {
-      position: absolute; left: 0; right: 0; bottom: 0; z-index: 30;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
       display: flex; flex-direction: column; align-items: center;
-      padding: 0 12px; padding-bottom: calc(12px + var(--safe-bottom));
+      padding: 0 12px;
+      padding-bottom: max(10px, var(--safe-bottom));
       pointer-events: none; gap: 10px;
     }
 
@@ -408,7 +418,7 @@
 
     /* SHEETS – slide up/down */
     .sheet {
-      position: absolute; left: 0; right: 0; bottom: 0; z-index: 25;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
       height: min(68vh, 620px); background: var(--sheet);
       backdrop-filter: blur(40px) saturate(160%); -webkit-backdrop-filter: blur(40px) saturate(160%);
       border-radius: 32px 32px 0 0; border: 1px solid var(--border); border-bottom: none;
@@ -716,7 +726,7 @@
 
       .bottom-stack {
         padding: 0 10px;
-        padding-bottom: calc(10px + var(--safe-bottom));
+        padding-bottom: max(8px, var(--safe-bottom));
         gap: 8px;
       }
       .player {
