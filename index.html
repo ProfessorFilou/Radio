@@ -4,9 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Radio</title>
-  <link rel="icon" type="image/png" href="./Radio.png" />
   <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
-  <link rel="apple-touch-icon" href="./Radio.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
   <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#0a84ff" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -74,35 +76,40 @@
     }
     body {
       width: 100%;
-      height: var(--app-height);
+      height: 100%;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: #050506;
       color: var(--text);
       overflow: hidden;
       overscroll-behavior: none;
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      inset: 0;
       -webkit-font-smoothing: antialiased;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
 
     #map {
-      position: fixed;
-      top: 0;
-      left: 0;
+      position: absolute;
+      inset: 0;
       width: 100%;
-      height: var(--app-height);
+      height: 100%;
       z-index: 1;
       background: #050506;
     }
+    #map .leaflet-container {
+      width: 100% !important;
+      height: 100% !important;
+    }
 
-    html.is-standalone .player:not(.visible) {
+    /* Hidden mini-player must not reserve space */
+    .player:not(.visible) {
       height: 0 !important;
       padding: 0 !important;
       margin: 0 !important;
+      overflow: hidden !important;
+      border: none !important;
+      box-shadow: none !important;
     }
 
     .leaflet-container { background: var(--bg); font: inherit; }
@@ -304,17 +311,19 @@
       box-shadow: 0 0 0 2px color-mix(in srgb, var(--dot, #8e8e93) 35%, transparent);
     }
 
-    /* BOTTOM STACK */
+    /* BOTTOM STACK – sits on physical bottom; only safe-area padding */
     .bottom-stack {
-      position: fixed;
-      left: 0; right: 0;
+      position: absolute;
+      left: 0;
+      right: 0;
       bottom: 0;
       z-index: 30;
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: flex-end;
       padding: 0 12px;
-      padding-bottom: max(8px, var(--sab));
+      padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
       pointer-events: none;
       gap: 8px;
     }
@@ -809,7 +818,7 @@
 
       .bottom-stack {
         padding: 0 10px;
-        padding-bottom: max(6px, var(--sab));
+        padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
         gap: 8px;
       }
       .player {
@@ -2240,22 +2249,24 @@
       || window.navigator.standalone === true;
     if (isStandalone) document.documentElement.classList.add('is-standalone');
 
-    // Always pin height to real visible pixels (fixes iOS PWA black gap)
+    // Do NOT lock body/map to a pixel height on iOS PWA – that caused the black gap.
+    // Only help Safari-browser via visualViewport; standalone uses CSS inset:0 (100% fill).
     function syncAppHeight() {
-      let h = window.innerHeight;
-      if (!isStandalone && window.visualViewport && window.visualViewport.height) {
-        h = window.visualViewport.height;
-      }
-      // iOS sometimes reports short innerHeight before layout settles
-      if (isStandalone && window.screen && screen.height) {
-        h = Math.max(h, Math.min(screen.height, window.innerHeight || screen.height));
-      }
-      h = Math.round(h);
-      document.documentElement.style.setProperty('--app-height', h + 'px');
-      document.documentElement.style.height = h + 'px';
-      document.body.style.height = h + 'px';
+      // Clear any leftover inline heights from older versions
+      document.documentElement.style.removeProperty('height');
+      document.body.style.removeProperty('height');
       const mapEl = document.getElementById('map');
-      if (mapEl) mapEl.style.height = h + 'px';
+      if (mapEl) {
+        mapEl.style.removeProperty('height');
+        mapEl.style.removeProperty('width');
+      }
+
+      if (!isStandalone && window.visualViewport && window.visualViewport.height) {
+        const h = Math.round(window.visualViewport.height);
+        document.documentElement.style.setProperty('--app-height', h + 'px');
+      } else {
+        document.documentElement.style.setProperty('--app-height', '100%');
+      }
       if (map) {
         try { map.invalidateSize({ animate: false }); } catch (_) {}
       }
@@ -2263,8 +2274,8 @@
     syncAppHeight();
     window.addEventListener('resize', syncAppHeight);
     window.addEventListener('orientationchange', () => {
-      setTimeout(syncAppHeight, 50);
-      setTimeout(syncAppHeight, 300);
+      setTimeout(syncAppHeight, 100);
+      setTimeout(syncAppHeight, 400);
     });
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', syncAppHeight);
@@ -2274,14 +2285,18 @@
     initMap();
     loadMapStations();
     initFirebase();
-    setTimeout(syncAppHeight, 50);
-    setTimeout(syncAppHeight, 250);
-    setTimeout(syncAppHeight, 800);
+    setTimeout(syncAppHeight, 100);
+    setTimeout(() => { if (map) map.invalidateSize(); }, 300);
+    setTimeout(() => { if (map) map.invalidateSize(); }, 1000);
 
     // PWA service worker – force update
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').then((reg) => {
+      navigator.serviceWorker.register('./sw.js?v=6').then((reg) => {
         reg.update();
+        // Drop old caches aggressively
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_OLD' });
+        }
       }).catch(() => {});
     }
   </script>
