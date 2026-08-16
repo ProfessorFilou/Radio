@@ -95,7 +95,10 @@
       background: var(--bg);
     }
     .leaflet-container { background: var(--bg); font: inherit; }
-    .leaflet-top.leaflet-right { top: 100px !important; right: 12px !important; }
+    .leaflet-top.leaflet-right {
+      top: calc(112px + env(safe-area-inset-top, 0px)) !important;
+      right: 12px !important;
+    }
     .leaflet-control-zoom {
       border: none !important; border-radius: 16px !important; overflow: hidden;
       box-shadow: 0 8px 28px rgba(0,0,0,0.35) !important; margin: 0 !important;
@@ -714,7 +717,7 @@
       }
 
       .leaflet-top.leaflet-right {
-        top: 100px !important;
+        top: calc(128px + env(safe-area-inset-top, 0px)) !important;
         right: 10px !important;
       }
       .leaflet-control-zoom a {
