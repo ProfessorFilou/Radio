@@ -402,46 +402,66 @@
       transition: none !important;
     }
 
-    /* Live Top 3 */
-    .top-live {
-      pointer-events: auto;
+    /* Live Top 3 – inside list sheet */
+    .live-section {
       display: none;
-      width: 100%;
-      max-width: 440px;
-      gap: 6px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      padding: 0 2px;
+      padding: 4px 4px 12px;
+      margin-bottom: 4px;
+      border-bottom: 1px solid var(--border);
     }
-    .top-live.visible { display: flex; }
-    .top-live::-webkit-scrollbar { display: none; }
-    .top-live-chip {
-      flex-shrink: 0;
+    .live-section.visible { display: block; }
+    .live-section-title {
       display: flex; align-items: center; gap: 8px;
-      height: 36px; padding: 0 12px 0 6px;
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      background: var(--chip-bg);
-      backdrop-filter: blur(16px);
-      color: var(--text);
-      font-size: 12.5px; font-weight: 560;
-      cursor: pointer;
-      transition: transform 0.15s, background 0.15s;
+      font-size: 12px; font-weight: 650; text-transform: uppercase;
+      letter-spacing: 0.5px; color: var(--muted);
+      padding: 4px 8px 10px;
     }
-    .top-live-chip:active { transform: scale(0.96); }
-    .top-live-rank {
-      width: 22px; height: 22px; border-radius: 50%;
+    .live-section-title svg {
+      width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2;
+    }
+    .live-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 10px; border-radius: 14px;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .live-item:hover { background: rgba(127,127,127,0.1); }
+    .live-item:active { transform: scale(0.99); }
+    .live-rank {
+      width: 28px; height: 28px; border-radius: 10px;
       background: var(--accent); color: #fff;
-      font-size: 11px; font-weight: 700;
+      font-size: 13px; font-weight: 700;
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .live-item:nth-child(3) .live-rank { background: #8e8e93; }
+    .live-item:nth-child(4) .live-rank { background: #ac8e68; }
+    .live-fav {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(145deg, #3a3a3c, #2c2c2e);
+      overflow: hidden; flex-shrink: 0;
       display: grid; place-items: center;
     }
-    .top-live-chip:nth-child(2) .top-live-rank { background: #8e8e93; }
-    .top-live-chip:nth-child(3) .top-live-rank { background: #ac8e68; }
-    .top-live-name {
-      max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    .live-fav img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .live-meta { flex: 1; min-width: 0; }
+    .live-name {
+      font-size: 15px; font-weight: 560; letter-spacing: -0.2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .top-live-count {
-      color: var(--muted); font-size: 11px; font-weight: 500;
+    .live-sub {
+      font-size: 12px; color: var(--muted); margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .live-listeners {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; flex-shrink: 0; min-width: 44px;
+      color: var(--accent);
+    }
+    .live-listeners svg {
+      width: 20px; height: 20px;
+      stroke: currentColor; fill: none; stroke-width: 1.8;
+    }
+    .live-listeners .num {
+      font-size: 14px; font-weight: 700; color: var(--text);
+      letter-spacing: -0.3px; font-variant-numeric: tabular-nums;
     }
 
     .sheet-header { padding: 4px 20px 10px; flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -770,7 +790,6 @@
       <button class="chip" data-q="Deutschland"><span class="chip-dot" style="--dot:#8e8e93;background:#8e8e93"></span>DE</button>
       <button class="chip" data-q="Lounge" data-genre="lounge"><span class="chip-dot" style="--dot:#30d158;background:#30d158"></span>Lounge</button>
     </div>
-    <div class="top-live" id="topLive" aria-label="Gerade am meisten gehört"></div>
   </div>
 
   <!-- List sheet -->
@@ -782,7 +801,10 @@
         <div class="sheet-count" id="sheetCount">—</div>
       </div>
     </div>
-    <div class="results" id="results"><div class="empty-state">Lade Sender…</div></div>
+    <div class="results" id="results">
+      <div class="live-section" id="liveSection" aria-label="Gerade am meisten gehört"></div>
+      <div id="resultsList"><div class="empty-state">Lade Sender…</div></div>
+    </div>
   </div>
 
   <!-- Library sheet -->
@@ -1402,7 +1424,8 @@
         setLoading(100);
       } catch (e) {
         console.error(e);
-        document.getElementById('results').innerHTML = `<div class="empty-state">Sender konnten nicht geladen werden.</div>`;
+        const errEl = document.getElementById('resultsList') || document.getElementById('results');
+        if (errEl) errEl.innerHTML = `<div class="empty-state">Sender konnten nicht geladen werden.</div>`;
         setLoading(100);
       }
     }
@@ -1495,7 +1518,7 @@
     }
 
     function renderList(stations, label) {
-      const el = document.getElementById('results');
+      const el = document.getElementById('resultsList') || document.getElementById('results');
       document.getElementById('sheetTitle').textContent = label || 'Sender';
       document.getElementById('sheetCount').textContent = stations.length ? `${stations.length} Sender` : '';
       if (!stations.length) {
@@ -1798,7 +1821,7 @@
     }
 
     function renderTopLive() {
-      const el = document.getElementById('topLive');
+      const el = document.getElementById('liveSection');
       if (!el) return;
       if (!topLiveStations.length) {
         el.classList.remove('visible');
@@ -1806,16 +1829,29 @@
         return;
       }
       el.classList.add('visible');
-      el.innerHTML = topLiveStations.map((s, i) => `
-        <button type="button" class="top-live-chip" data-uuid="${s.stationuuid}">
-          <span class="top-live-rank">${i + 1}</span>
-          <span class="top-live-name">${escapeHtml(s.name)}</span>
-          <span class="top-live-count">${s.count} live</span>
-        </button>
-      `).join('');
-      el.querySelectorAll('.top-live-chip').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const s = topLiveStations.find(x => x.stationuuid === btn.dataset.uuid);
+      const ear = `<svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M6 12a6 6 0 0 1 12 0"/><path d="M18 12v2a2 2 0 0 1-2 2h-1"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/><circle cx="9" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>`;
+      el.innerHTML = `
+        <div class="live-section-title">
+          <svg viewBox="0 0 24 24" stroke-linecap="round"><path d="M6 12a6 6 0 0 1 12 0"/><path d="M18 12v2a2 2 0 0 1-2 2"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg>
+          Gerade live
+        </div>
+        ${topLiveStations.map((s, i) => `
+          <div class="live-item" data-uuid="${s.stationuuid}">
+            <div class="live-rank">${i + 1}</div>
+            <div class="live-fav">${faviconHtml(s)}</div>
+            <div class="live-meta">
+              <div class="live-name">${escapeHtml(s.name)}</div>
+              <div class="live-sub">${escapeHtml(stationSubtitle(s))}</div>
+            </div>
+            <div class="live-listeners">
+              ${ear}
+              <span class="num">${s.count}</span>
+            </div>
+          </div>
+        `).join('')}`;
+      el.querySelectorAll('.live-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const s = topLiveStations.find(x => x.stationuuid === item.dataset.uuid);
           if (!s) return;
           const full = allStations.find(x => x.stationuuid === s.stationuuid) || s;
           if (full.geo_lat && full.geo_long) {
