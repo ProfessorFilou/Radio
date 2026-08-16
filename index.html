@@ -1,9 +1,17 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="de" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Radio</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#0a84ff" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Radio" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
@@ -85,6 +93,25 @@
       transform: scale(1.55); background: #fff;
       box-shadow: 0 0 0 5px color-mix(in srgb, var(--marker-color, var(--accent)) 55%, transparent),
                   0 4px 16px rgba(0,0,0,0.45);
+    }
+    .station-marker.offline {
+      background: #636366 !important;
+      --marker-color: #636366;
+      opacity: 0.55;
+      box-shadow: 0 0 0 2px rgba(99,99,102,0.35), 0 1px 4px rgba(0,0,0,0.3);
+    }
+    .station-marker.offline:hover,
+    .station-marker.offline.active {
+      background: #8e8e93 !important;
+      opacity: 0.85;
+    }
+    .station-item.offline { opacity: 0.55; }
+    .station-item.offline .station-name { color: var(--muted); }
+    .offline-badge {
+      font-size: 10px; font-weight: 650; letter-spacing: 0.2px;
+      color: #8e8e93; background: rgba(99,99,102,0.25);
+      padding: 2px 6px; border-radius: 6px; margin-left: 6px;
+      vertical-align: middle;
     }
 
     
@@ -1132,10 +1159,12 @@
 
     function popupHtml(station) {
       const logo = faviconHtml(station);
+      const offline = isStationOffline(station);
       const bits = [];
       if (station.country) bits.push(`<span>${escapeHtml(station.country)}</span>`);
       if (station.bitrate) bits.push(`<span>${station.bitrate} kbps</span>`);
       if (station.codec) bits.push(`<span>${escapeHtml(station.codec)}</span>`);
+      if (offline) bits.push(`<span>Offline</span>`);
       const tags = station.tags
         ? station.tags.split(',').map(t => t.trim()).filter(Boolean).slice(0, 2).join(', ')
         : '';
@@ -1144,24 +1173,26 @@
           <div class="map-popup-top">
             <div class="map-popup-logo">${logo}</div>
             <div>
-              <div class="map-popup-name">${escapeHtml(station.name || 'Sender')}</div>
+              <div class="map-popup-name">${escapeHtml(station.name || 'Sender')}${offline ? ' · Offline' : ''}</div>
               <div class="map-popup-sub">${escapeHtml(tags || stationSubtitle(station))}</div>
             </div>
           </div>
           ${bits.length ? `<div class="map-popup-meta">${bits.join('')}</div>` : ''}
-          <button type="button" class="map-popup-play" data-play="${station.stationuuid}">
+          <button type="button" class="map-popup-play" data-play="${station.stationuuid}" style="${offline ? 'background:#636366' : ''}">
             <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-            Abspielen
+            ${offline ? 'Trotzdem versuchen' : 'Abspielen'}
           </button>
         </div>`;
     }
 
     function addMarker(station) {
       if (!station.geo_lat || !station.geo_long) return;
-      const color = genreColor(station);
+      const offline = isStationOffline(station);
+      const color = offline ? '#636366' : genreColor(station);
+      const offlineClass = offline ? ' offline' : '';
       const icon = L.divIcon({
         className: '',
-        html: `<div class="station-marker" data-uuid="${station.stationuuid}" style="--marker-color:${color};background:${color}"></div>`,
+        html: `<div class="station-marker${offlineClass}" data-uuid="${station.stationuuid}" style="--marker-color:${color};background:${color}"></div>`,
         iconSize: [13, 13],
         iconAnchor: [6.5, 6.5]
       });
@@ -1191,6 +1222,27 @@
         });
       });
       markersLayer.addLayer(m);
+    }
+
+    function isStationOffline(s) {
+      if (!s) return false;
+      // API: lastcheckok 1 = ok, 0 = failed
+      if (s.lastcheckok === 0 || s.lastcheckok === '0') return true;
+      if (s.lastcheckok === false) return true;
+      return false;
+    }
+
+    function markStationOffline(uuid) {
+      if (!uuid) return;
+      document.querySelectorAll(`.station-marker[data-uuid="${uuid}"]`).forEach(el => {
+        el.classList.add('offline');
+        el.style.setProperty('--marker-color', '#636366');
+        el.style.background = '#636366';
+      });
+      const st = allStations.find(x => x.stationuuid === uuid)
+        || searchResults.find(x => x.stationuuid === uuid)
+        || (currentStation && currentStation.stationuuid === uuid ? currentStation : null);
+      if (st) st.lastcheckok = 0;
     }
 
     function formatListenTime(sec) {
@@ -1287,7 +1339,7 @@
       setLoading(25);
       try {
         const stations = await api('/stations/search', {
-          has_geo_info: true, hidebroken: true, order: 'votes', reverse: true, limit: 900
+          has_geo_info: true, hidebroken: false, order: 'votes', reverse: true, limit: 900
         });
         allStations = stations.filter(s => s.geo_lat && s.geo_long && (s.url_resolved || s.url));
         markersLayer.clearLayers();
@@ -1356,11 +1408,12 @@
     function stationRow(s, list) {
       const playing = currentStation && currentStation.stationuuid === s.stationuuid;
       const fav = isFav(s.stationuuid);
+      const offline = isStationOffline(s);
       return `
-        <div class="station-item ${playing ? 'playing' : ''}" data-uuid="${s.stationuuid}">
+        <div class="station-item ${playing ? 'playing' : ''} ${offline ? 'offline' : ''}" data-uuid="${s.stationuuid}">
           <div class="station-fav">${faviconHtml(s)}</div>
           <div class="station-meta">
-            <div class="station-name">${escapeHtml(s.name)}</div>
+            <div class="station-name">${escapeHtml(s.name)}${offline ? '<span class="offline-badge">Offline</span>' : ''}</div>
             <div class="station-sub">${escapeHtml(stationSubtitle(s))}${s._dist != null ? ' · ' + Math.round(s._dist) + ' km' : ''}</div>
           </div>
           <button class="item-fav ${fav ? 'active' : ''}" data-fav="${s.stationuuid}" aria-label="Favorit">
@@ -1500,6 +1553,7 @@
       }).catch(() => {
         isPlaying = false;
         setStreamError(true, 'Stream nicht erreichbar – anderen Sender versuchen');
+        markStationOffline(station.stationuuid);
         updatePlayIcon();
         stopListenTimer();
       });
@@ -1656,6 +1710,7 @@
     audio.addEventListener('error', () => {
       isPlaying = false;
       setStreamError(true, 'Stream-Fehler – Sender offline oder blockiert');
+      if (currentStation) markStationOffline(currentStation.stationuuid);
       updatePlayIcon();
       stopListenTimer();
     });
@@ -1686,6 +1741,11 @@
     // Start
     initMap();
     loadMapStations();
+
+    // PWA service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
   </script>
 </body>
 </html>
