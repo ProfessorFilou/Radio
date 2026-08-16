@@ -62,25 +62,23 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --app-height: 100dvh; }
     html {
       width: 100%;
-      height: 100%;
-      height: -webkit-fill-available;
+      height: var(--app-height);
       background: var(--bg);
     }
     body {
       width: 100%;
-      height: 100%;
-      min-height: 100%;
-      min-height: 100dvh;
-      min-height: -webkit-fill-available;
+      height: var(--app-height);
+      max-height: var(--app-height);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
       overflow: hidden;
       overscroll-behavior: none;
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0; left: 0; right: 0;
       -webkit-font-smoothing: antialiased;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
@@ -88,12 +86,49 @@
 
     #map {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
+      top: 0; left: 0; right: 0;
       width: 100%;
-      height: 100%;
+      height: var(--app-height);
       z-index: 1;
       background: var(--bg);
     }
+
+    /* iOS PWA standalone: fill entire screen, no black bar */
+    @media (display-mode: standalone) {
+      html, body {
+        height: 100% !important;
+        max-height: none !important;
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100% !important;
+      }
+      #map {
+        position: fixed !important;
+        inset: 0 !important;
+        width: auto !important;
+        height: auto !important;
+      }
+      .bottom-stack {
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+      }
+    }
+    html.is-standalone, html.is-standalone body {
+      height: 100% !important;
+      max-height: none !important;
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100% !important;
+    }
+    html.is-standalone #map {
+      position: fixed !important;
+      inset: 0 !important;
+      width: auto !important;
+      height: auto !important;
+    }
+    html.is-standalone .bottom-stack {
+      padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    }
+
     .leaflet-container { background: var(--bg); font: inherit; }
     .leaflet-top.leaflet-right {
       top: calc(112px + env(safe-area-inset-top, 0px)) !important;
@@ -2198,10 +2233,38 @@
     enableSheetSwipe(statsSheet);
     enableSheetSwipe(playerSheet);
 
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || window.navigator.standalone === true;
+    if (isStandalone) {
+      document.documentElement.classList.add('is-standalone');
+    }
+
+    // Browser (Safari): visualViewport height. PWA: full screen via CSS inset, no pixel lock.
+    function syncAppHeight() {
+      if (isStandalone) {
+        document.documentElement.style.removeProperty('--app-height');
+        if (map) { try { map.invalidateSize({ animate: false }); } catch (_) {} }
+        return;
+      }
+      const h = (window.visualViewport && window.visualViewport.height)
+        ? window.visualViewport.height
+        : window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', h + 'px');
+      if (map) { try { map.invalidateSize({ animate: false }); } catch (_) {} }
+    }
+    syncAppHeight();
+    window.addEventListener('resize', syncAppHeight);
+    window.addEventListener('orientationchange', () => setTimeout(syncAppHeight, 200));
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncAppHeight);
+    }
+
     // Start
     initMap();
     loadMapStations();
     initFirebase();
+    setTimeout(syncAppHeight, 100);
+    setTimeout(() => { if (map) map.invalidateSize(); }, 400);
 
     // PWA service worker
     if ('serviceWorker' in navigator) {
