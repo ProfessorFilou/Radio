@@ -62,23 +62,28 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --app-height: 100dvh; }
+    :root {
+      --app-height: 100dvh;
+      --sat: env(safe-area-inset-top, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+    }
     html {
       width: 100%;
-      height: var(--app-height);
-      background: var(--bg);
+      height: 100%;
+      background: #050506;
     }
     body {
       width: 100%;
       height: var(--app-height);
-      max-height: var(--app-height);
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
+      background: #050506;
       color: var(--text);
       overflow: hidden;
       overscroll-behavior: none;
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
+      right: 0;
       -webkit-font-smoothing: antialiased;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
@@ -86,48 +91,14 @@
 
     #map {
       position: fixed;
-      top: 0; left: 0; right: 0;
+      top: 0;
+      left: 0;
       width: 100%;
       height: var(--app-height);
       z-index: 1;
-      background: var(--bg);
+      background: #050506;
     }
 
-    /* iOS PWA standalone: fill entire screen, no black bar */
-    @media (display-mode: standalone) {
-      html, body {
-        height: 100% !important;
-        max-height: none !important;
-        position: fixed !important;
-        inset: 0 !important;
-        width: 100% !important;
-      }
-      #map {
-        position: fixed !important;
-        inset: 0 !important;
-        width: auto !important;
-        height: auto !important;
-      }
-      .bottom-stack {
-        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
-      }
-    }
-    html.is-standalone, html.is-standalone body {
-      height: 100% !important;
-      max-height: none !important;
-      position: fixed !important;
-      inset: 0 !important;
-      width: 100% !important;
-    }
-    html.is-standalone #map {
-      position: fixed !important;
-      inset: 0 !important;
-      width: auto !important;
-      height: auto !important;
-    }
-    html.is-standalone .bottom-stack {
-      padding-bottom: max(4px, env(safe-area-inset-bottom, 0px)) !important;
-    }
     html.is-standalone .player:not(.visible) {
       height: 0 !important;
       padding: 0 !important;
@@ -333,13 +304,19 @@
       box-shadow: 0 0 0 2px color-mix(in srgb, var(--dot, #8e8e93) 35%, transparent);
     }
 
-    /* BOTTOM STACK – only safe-area, no extra black gap */
+    /* BOTTOM STACK */
     .bottom-stack {
-      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-      display: flex; flex-direction: column; align-items: center;
+      position: fixed;
+      left: 0; right: 0;
+      bottom: 0;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding: 0 12px;
-      padding-bottom: max(8px, var(--safe-bottom));
-      pointer-events: none; gap: 8px;
+      padding-bottom: max(8px, var(--sab));
+      pointer-events: none;
+      gap: 8px;
     }
 
     /* MINI PLAYER – takes no space when hidden (fixes black gap above nav) */
@@ -832,7 +809,7 @@
 
       .bottom-stack {
         padding: 0 10px;
-        padding-bottom: max(8px, var(--safe-bottom));
+        padding-bottom: max(6px, var(--sab));
         gap: 8px;
       }
       .player {
@@ -2261,26 +2238,34 @@
 
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
       || window.navigator.standalone === true;
-    if (isStandalone) {
-      document.documentElement.classList.add('is-standalone');
-    }
+    if (isStandalone) document.documentElement.classList.add('is-standalone');
 
-    // Browser (Safari): visualViewport height. PWA: full screen via CSS inset, no pixel lock.
+    // Always pin height to real visible pixels (fixes iOS PWA black gap)
     function syncAppHeight() {
-      if (isStandalone) {
-        document.documentElement.style.removeProperty('--app-height');
-        if (map) { try { map.invalidateSize({ animate: false }); } catch (_) {} }
-        return;
+      let h = window.innerHeight;
+      if (!isStandalone && window.visualViewport && window.visualViewport.height) {
+        h = window.visualViewport.height;
       }
-      const h = (window.visualViewport && window.visualViewport.height)
-        ? window.visualViewport.height
-        : window.innerHeight;
+      // iOS sometimes reports short innerHeight before layout settles
+      if (isStandalone && window.screen && screen.height) {
+        h = Math.max(h, Math.min(screen.height, window.innerHeight || screen.height));
+      }
+      h = Math.round(h);
       document.documentElement.style.setProperty('--app-height', h + 'px');
-      if (map) { try { map.invalidateSize({ animate: false }); } catch (_) {} }
+      document.documentElement.style.height = h + 'px';
+      document.body.style.height = h + 'px';
+      const mapEl = document.getElementById('map');
+      if (mapEl) mapEl.style.height = h + 'px';
+      if (map) {
+        try { map.invalidateSize({ animate: false }); } catch (_) {}
+      }
     }
     syncAppHeight();
     window.addEventListener('resize', syncAppHeight);
-    window.addEventListener('orientationchange', () => setTimeout(syncAppHeight, 200));
+    window.addEventListener('orientationchange', () => {
+      setTimeout(syncAppHeight, 50);
+      setTimeout(syncAppHeight, 300);
+    });
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', syncAppHeight);
     }
@@ -2289,12 +2274,15 @@
     initMap();
     loadMapStations();
     initFirebase();
-    setTimeout(syncAppHeight, 100);
-    setTimeout(() => { if (map) map.invalidateSize(); }, 400);
+    setTimeout(syncAppHeight, 50);
+    setTimeout(syncAppHeight, 250);
+    setTimeout(syncAppHeight, 800);
 
-    // PWA service worker
+    // PWA service worker – force update
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
+        reg.update();
+      }).catch(() => {});
     }
   </script>
 </body>
