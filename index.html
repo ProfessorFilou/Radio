@@ -87,23 +87,7 @@
                   0 4px 16px rgba(0,0,0,0.45);
     }
 
-    .genre-legend {
-      pointer-events: none;
-      display: flex; flex-wrap: wrap; gap: 6px;
-      justify-content: center; max-width: 100%;
-      padding: 0 4px 2px;
-    }
-    .genre-legend span {
-      font-size: 10px; color: var(--muted);
-      display: inline-flex; align-items: center; gap: 4px;
-      background: var(--chip-bg); border: 1px solid var(--border);
-      border-radius: 10px; padding: 2px 8px;
-      backdrop-filter: blur(12px);
-    }
-    .genre-legend i {
-      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
-    }
-
+    
     /* Map info popup */
     .leaflet-popup-content-wrapper {
       background: var(--sheet) !important;
@@ -215,14 +199,19 @@
     }
     .suggestions::-webkit-scrollbar { display: none; }
     .chip {
-      flex-shrink: 0; height: 32px; padding: 0 14px; border-radius: 16px;
+      flex-shrink: 0; height: 32px; padding: 0 12px 0 10px; border-radius: 16px;
       border: 1px solid var(--border); background: var(--chip-bg);
       backdrop-filter: blur(16px); color: var(--text);
       font-size: 13px; font-weight: 520; cursor: pointer;
       transition: background 0.15s, transform 0.1s; white-space: nowrap;
+      display: inline-flex; align-items: center; gap: 7px;
     }
     .chip:active { transform: scale(0.95); }
     .chip.active { background: rgba(10,132,255,0.28); border-color: rgba(10,132,255,0.5); color: #fff; }
+    .chip-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--dot, #8e8e93) 35%, transparent);
+    }
 
     /* BOTTOM STACK */
     .bottom-stack {
@@ -691,25 +680,15 @@
       </button>
     </div>
     <div class="suggestions" id="suggestions">
-      <button class="chip" type="button" id="chipNearby">📍 Nähe</button>
-      <button class="chip" data-q="Jazz" data-genre="jazz">🎷 Jazz</button>
-      <button class="chip" data-q="Rock" data-genre="rock">🎸 Rock</button>
-      <button class="chip" data-q="News" data-genre="news">📰 News</button>
-      <button class="chip" data-q="Classical" data-genre="classical">🎻 Klassik</button>
-      <button class="chip" data-q="Pop" data-genre="pop">🎤 Pop</button>
-      <button class="chip" data-q="Electronic" data-genre="electronic">⚡ Electronic</button>
-      <button class="chip" data-q="Deutschland">🇩🇪 DE</button>
-      <button class="chip" data-q="Lounge" data-genre="lounge">🌙 Lounge</button>
-    </div>
-    <div class="genre-legend">
-      <span><i style="background:#0a84ff"></i>Jazz</span>
-      <span><i style="background:#ff453a"></i>Rock</span>
-      <span><i style="background:#ff9f0a"></i>News</span>
-      <span><i style="background:#bf5af2"></i>Klassik</span>
-      <span><i style="background:#ff375f"></i>Pop</span>
-      <span><i style="background:#64d2ff"></i>Electronic</span>
-      <span><i style="background:#30d158"></i>Lounge</span>
-      <span><i style="background:#8e8e93"></i>Andere</span>
+      <button class="chip" type="button" id="chipNearby"><span class="chip-dot" style="--dot:#0a84ff;background:#0a84ff"></span>Nähe</button>
+      <button class="chip" data-q="Jazz" data-genre="jazz"><span class="chip-dot" style="--dot:#0a84ff;background:#0a84ff"></span>Jazz</button>
+      <button class="chip" data-q="Rock" data-genre="rock"><span class="chip-dot" style="--dot:#ff453a;background:#ff453a"></span>Rock</button>
+      <button class="chip" data-q="News" data-genre="news"><span class="chip-dot" style="--dot:#ff9f0a;background:#ff9f0a"></span>News</button>
+      <button class="chip" data-q="Classical" data-genre="classical"><span class="chip-dot" style="--dot:#bf5af2;background:#bf5af2"></span>Klassik</button>
+      <button class="chip" data-q="Pop" data-genre="pop"><span class="chip-dot" style="--dot:#ff375f;background:#ff375f"></span>Pop</button>
+      <button class="chip" data-q="Electronic" data-genre="electronic"><span class="chip-dot" style="--dot:#64d2ff;background:#64d2ff"></span>Electronic</button>
+      <button class="chip" data-q="Deutschland"><span class="chip-dot" style="--dot:#8e8e93;background:#8e8e93"></span>DE</button>
+      <button class="chip" data-q="Lounge" data-genre="lounge"><span class="chip-dot" style="--dot:#30d158;background:#30d158"></span>Lounge</button>
     </div>
   </div>
 
